@@ -1,3 +1,5 @@
+trigger: none
+
 jobs:
 
 # - job: GetPRNumber
@@ -178,9 +180,18 @@ jobs:
       artifactName: 'NuGet'
     condition: succeeded()
 
-  - task: PublishBuildArtifacts@1
+  - task: DotNetCoreCLI@2
+    displayName: Push packages
+    condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/release'))
     inputs:
-      pathToPublish: '$(Build.SourcesDirectory)/artifacts/zip'
-      artifactName: 'Samples'
-    condition: succeeded()
+      command: 'push'
+      packagesToPush: '$(Build.SourcesDirectory)/artifacts/nuget/*.nupkg'
+      nuGetFeedType: 'internal'
+      publishVstsFeed: 'a0b0aaaa-c5cc-43c6-af3e-60bcbbc1f245'
+
+  # - task: PublishBuildArtifacts@1
+  #   inputs:
+  #     pathToPublish: '$(Build.SourcesDirectory)/artifacts/zip'
+  #     artifactName: 'Samples'
+  #   condition: succeeded()
 
