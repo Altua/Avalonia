@@ -1,6 +1,6 @@
 ﻿<ResourceDictionary xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        xmlns:converters="clr-namespace:Avalonia.Controls.Converters;assembly=Avalonia.Controls">
+        xmlns:converters="using:Avalonia.Controls.Converters">
 
   <Design.PreviewWith>
     <Border Padding="20"
@@ -75,6 +75,7 @@
                   MinHeight="{TemplateBinding MinHeight}"
                   TemplatedControl.IsTemplateFocusTarget="True">
             <Grid Name="PART_Header"
+                  Background="Transparent"
                   ColumnDefinitions="Auto, *"
                   Margin="{TemplateBinding Level, Mode=OneWay, Converter={StaticResource TreeViewItemLeftMarginConverter}}">
               <Panel Name="PART_ExpandCollapseChevronContainer"

@@ -14,10 +14,11 @@ namespace Avalonia.Skia
         private readonly GRContext _grContext;
         private IGlPlatformSurfaceRenderTarget _surface;
 
-        public GlRenderTarget(GRContext grContext, IGlPlatformSurface glSurface)
+        public GlRenderTarget(GRContext grContext, IGlContext glContext, IGlPlatformSurface glSurface)
         {
             _grContext = grContext;
-            _surface = glSurface.CreateGlRenderTarget();
+            using (glContext.EnsureCurrent())
+                _surface = glSurface.CreateGlRenderTarget(glContext);
         }
 
         public void Dispose() => _surface.Dispose();
@@ -91,7 +92,7 @@ namespace Avalonia.Skia
                     var renderTarget = new GRBackendRenderTarget(size.Width, size.Height, samples, disp.StencilSize, glInfo);
                     var surface = SKSurface.Create(_grContext, renderTarget,
                         glSession.IsYFlipped ? GRSurfaceOrigin.TopLeft : GRSurfaceOrigin.BottomLeft,
-                        colorType);
+                        colorType, new SKSurfaceProperties(SKPixelGeometry.RgbHorizontal));
 
                     success = true;
 

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq.Expressions;
 using System.Reactive;
 using System.Reactive.Linq;
@@ -48,10 +49,9 @@ namespace Avalonia.Data.Core
                 new TaskStreamPlugin(),
                 new ObservableStreamPlugin(),
             };
-
-        private static readonly object UninitializedValue = new object();
         private readonly ExpressionNode _node;
         private object? _root;
+        private Func<object?>? _rootGetter;
         private IDisposable? _rootSubscription;
         private WeakReference<object?>? _value;
         private IReadOnlyList<ITransformNode>? _transformNodes;
@@ -109,11 +109,9 @@ namespace Avalonia.Data.Core
             IObservable<Unit> update,
             string? description)
         {
-            _ = rootGetter ?? throw new ArgumentNullException(nameof(rootGetter));
-
             Description = description;
-            _node = node ?? throw new ArgumentNullException(nameof(rootGetter));
-            _node.Target = new WeakReference<object?>(rootGetter());
+            _rootGetter = rootGetter ?? throw new ArgumentNullException(nameof(rootGetter));
+            _node = node ?? throw new ArgumentNullException(nameof(node));
             _root = update.Select(x => rootGetter());
         }
 
@@ -127,6 +125,7 @@ namespace Avalonia.Data.Core
         /// <param name="description">
         /// A description of the expression. If null, <paramref name="expression"/>'s string representation will be used.
         /// </param>
+        [UnconditionalSuppressMessage("Trimming", "IL2026", Justification = TrimmingMessages.ExpressionSafeSupressWarningMessage)]
         public static ExpressionObserver Create<T, U>(
             T? root,
             Expression<Func<T, U>> expression,
@@ -145,6 +144,7 @@ namespace Avalonia.Data.Core
         /// <param name="description">
         /// A description of the expression. If null, <paramref name="expression"/>'s string representation will be used.
         /// </param>
+        [UnconditionalSuppressMessage("Trimming", "IL2026", Justification = TrimmingMessages.ExpressionSafeSupressWarningMessage)]
         public static ExpressionObserver Create<T, U>(
             IObservable<T> rootObservable,
             Expression<Func<T, U>> expression,
@@ -169,6 +169,7 @@ namespace Avalonia.Data.Core
         /// <param name="description">
         /// A description of the expression. If null, <paramref name="expression"/>'s string representation will be used.
         /// </param>
+        [UnconditionalSuppressMessage("Trimming", "IL2026", Justification = TrimmingMessages.ExpressionSafeSupressWarningMessage)]
         public static ExpressionObserver Create<T, U>(
             Func<T> rootGetter,
             Expression<Func<T, U>> expression,
@@ -263,6 +264,8 @@ namespace Avalonia.Data.Core
         protected override void Initialize()
         {
             _value = null;
+            if (_rootGetter is not null)
+                _node.Target = new WeakReference<object?>(_rootGetter());
             _node.Subscribe(ValueChanged);
             StartRoot();
         }
@@ -282,6 +285,7 @@ namespace Avalonia.Data.Core
             }
         }
 
+        [RequiresUnreferencedCode(TrimmingMessages.ExpressionNodeRequiresUnreferencedCodeMessage)]
         private static ExpressionNode Parse(LambdaExpression expression, bool enableDataValidation)
         {
             return ExpressionTreeParser.Parse(expression, enableDataValidation);

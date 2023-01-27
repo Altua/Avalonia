@@ -13,7 +13,7 @@ namespace Avalonia.Controls
         private TextBox? _parent;
         private TextPresenter? _presenter;
 
-        public IVisual TextViewVisual => _presenter!;
+        public Visual TextViewVisual => _presenter!;
 
         public bool SupportsPreedit => true;
 
@@ -77,12 +77,14 @@ namespace Avalonia.Controls
 
             foreach (var run in textLine.TextRuns)
             {
-                if(run.Text.Length > 0)
+                if(run.Length > 0)
                 {
+                    var characterBufferRange = new CharacterBufferRange(run.CharacterBufferReference, run.Length);
+
 #if NET6_0
-                    builder.Append(run.Text.Span);
+                    builder.Append(characterBufferRange.Span);
 #else
-                    builder.Append(run.Text.Span.ToArray());
+                    builder.Append(characterBufferRange.Span.ToArray());
 #endif
                 }
             }

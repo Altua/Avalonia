@@ -42,7 +42,7 @@ namespace Avalonia.Skia
                             GlConsts.GL_TEXTURE_2D, (uint)_surface.GetTextureId(),
                             (uint)_surface.InternalFormat)))
                     using (var surface = SKSurface.Create(context.GrContext, backendTexture, GRSurfaceOrigin.BottomLeft,
-                        SKColorType.Rgba8888))
+                        SKColorType.Rgba8888, new SKSurfaceProperties(SKPixelGeometry.RgbHorizontal)))
                     {
                         // Again, silently ignore, if something went wrong it's not our fault
                         if (surface == null)
@@ -109,7 +109,9 @@ namespace Avalonia.Skia
             using (_context.EnsureCurrent())
             {
                 var glVersion = _context.Version;
-                InternalFormat = glVersion.Type == GlProfileType.OpenGLES ? GL_RGBA : GL_RGBA8;
+                InternalFormat = glVersion.Type == GlProfileType.OpenGLES && glVersion.Major == 2 
+                    ? GL_RGBA 
+                    : GL_RGBA8;
                 
                 _context.GlInterface.GetIntegerv(GL_FRAMEBUFFER_BINDING, out _fbo);
                 if (_fbo == 0)
@@ -145,7 +147,7 @@ namespace Avalonia.Skia
 
         public void Present()
         {
-            using (_context.MakeCurrent())
+            using (_context.EnsureCurrent())
             {
                 if (_disposed)
                     throw new ObjectDisposedException(nameof(SharedOpenGlBitmapAttachment));

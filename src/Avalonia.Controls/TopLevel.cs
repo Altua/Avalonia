@@ -1,6 +1,7 @@
 using System;
 using System.Reactive.Linq;
 using Avalonia.Controls.Metadata;
+using Avalonia.Controls.Notifications;
 using Avalonia.Controls.Platform;
 using Avalonia.Controls.Primitives;
 using Avalonia.Input;
@@ -144,7 +145,6 @@ namespace Avalonia.Controls
             _actualTransparencyLevel = PlatformImpl.TransparencyLevel;            
 
             dependencyResolver = dependencyResolver ?? AvaloniaLocator.Current;
-            var styler = TryGetService<IStyler>(dependencyResolver);
 
             _accessKeyHandler = TryGetService<IAccessKeyHandler>(dependencyResolver);
             _inputManager = TryGetService<IInputManager>(dependencyResolver);
@@ -181,8 +181,6 @@ namespace Avalonia.Controls
                 _globalStyles.GlobalStylesAdded += ((IStyleHost)this).StylesAdded;
                 _globalStyles.GlobalStylesRemoved += ((IStyleHost)this).StylesRemoved;
             }
-
-            styler?.ApplyStyles(this);
 
             ClientSize = impl.ClientSize;
             FrameSize = impl.FrameSize;
@@ -325,17 +323,7 @@ namespace Avalonia.Controls
             ??= AvaloniaLocator.Current.GetService<IStorageProviderFactory>()?.CreateProvider(this)
             ?? (PlatformImpl as ITopLevelImplWithStorageProvider)?.StorageProvider
             ?? throw new InvalidOperationException("StorageProvider platform implementation is not available.");
-
-        IRenderTarget IRenderRoot.CreateRenderTarget() => CreateRenderTarget();
-
-        /// <inheritdoc/>
-        protected virtual IRenderTarget CreateRenderTarget()
-        {
-            if(PlatformImpl == null)
-                throw new InvalidOperationException("Can't create render target, PlatformImpl is null (might be already disposed)");
-            return _renderInterface!.CreateRenderTarget(PlatformImpl.Surfaces);
-        }
-
+        
         /// <inheritdoc/>
         void IRenderRoot.Invalidate(Rect rect)
         {
@@ -359,12 +347,6 @@ namespace Avalonia.Controls
         /// </summary>
         protected virtual ILayoutManager CreateLayoutManager() => new LayoutManager(this);
 
-        public override void InvalidateMirrorTransform()
-        {
-        }
-        
-        protected override bool BypassFlowDirectionPolicies => true;
-        
         /// <summary>
         /// Handles a paint notification from <see cref="ITopLevelImpl.Resized"/>.
         /// </summary>
@@ -429,7 +411,7 @@ namespace Avalonia.Controls
             LayoutHelper.InvalidateSelfAndChildrenMeasure(this);
         }
 
-        private bool TransparencyLevelsMatch (WindowTransparencyLevel requested, WindowTransparencyLevel received)
+        private static bool TransparencyLevelsMatch (WindowTransparencyLevel requested, WindowTransparencyLevel received)
         {
             if(requested == received)
             {
@@ -542,7 +524,7 @@ namespace Avalonia.Controls
 
         void PlatformImpl_LostFocus()
         {
-            var focused = (IVisual?)FocusManager.Instance?.Current;
+            var focused = (Visual?)FocusManager.Instance?.Current;
             if (focused == null)
                 return;
             while (focused.VisualParent != null)

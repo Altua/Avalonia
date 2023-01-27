@@ -77,7 +77,7 @@ namespace Avalonia.Controls.Presenters
         }
 
         /// <inheritdoc/>
-        Size IScrollable.Extent => Virtualizer?.Extent ?? Size.Empty;
+        Size IScrollable.Extent => Virtualizer?.Extent ?? default;
 
         /// <inheritdoc/>
         Vector IScrollable.Offset
@@ -111,13 +111,13 @@ namespace Avalonia.Controls.Presenters
         internal ItemVirtualizer? Virtualizer { get; private set; }
 
         /// <inheritdoc/>
-        bool ILogicalScrollable.BringIntoView(IControl target, Rect targetRect)
+        bool ILogicalScrollable.BringIntoView(Control target, Rect targetRect)
         {
             return false;
         }
 
         /// <inheritdoc/>
-        IControl? ILogicalScrollable.GetControlInDirection(NavigationDirection direction, IControl? from)
+        Control? ILogicalScrollable.GetControlInDirection(NavigationDirection direction, Control? from)
         {
             return Virtualizer?.GetControlInDirection(direction, from);
         }
@@ -136,16 +136,16 @@ namespace Avalonia.Controls.Presenters
         /// <inheritdoc/>
         protected override Size MeasureOverride(Size availableSize)
         {
-            return Virtualizer?.MeasureOverride(availableSize) ?? Size.Empty;
+            return Virtualizer?.MeasureOverride(availableSize) ?? default;
         }
 
         protected override Size ArrangeOverride(Size finalSize)
         {
-            return Virtualizer?.ArrangeOverride(finalSize) ?? Size.Empty;
+            return Virtualizer?.ArrangeOverride(finalSize) ?? default;
         }
 
         /// <inheritdoc/>
-        protected override void PanelCreated(IPanel panel)
+        protected override void PanelCreated(Panel panel)
         {
             Virtualizer?.Dispose();
             Virtualizer = ItemVirtualizer.Create(this);

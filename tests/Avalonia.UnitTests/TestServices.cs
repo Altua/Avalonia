@@ -20,10 +20,9 @@ namespace Avalonia.UnitTests
     {
         public static readonly TestServices StyledWindow = new TestServices(
             assetLoader: new AssetLoader(),
-            platform: new AppBuilder().RuntimePlatform,
+            platform: new StandardRuntimePlatform(),
             renderInterface: new MockPlatformRenderInterface(),
             standardCursorFactory: Mock.Of<ICursorFactory>(),
-            styler: new Styler(),
             theme: () => CreateSimpleTheme(),
             threadingInterface: Mock.Of<IPlatformThreadingInterface>(x => x.CurrentThreadIsLoopThread == true),
             fontManagerImpl: new MockFontManagerImpl(),
@@ -38,9 +37,6 @@ namespace Avalonia.UnitTests
 
         public static readonly TestServices MockPlatformWrapper = new TestServices(
             platform: Mock.Of<IRuntimePlatform>());
-
-        public static readonly TestServices MockStyler = new TestServices(
-            styler: Mock.Of<IStyler>());
 
         public static readonly TestServices MockThreadingInterface = new TestServices(
             threadingInterface: Mock.Of<IPlatformThreadingInterface>(x => x.CurrentThreadIsLoopThread == true));
@@ -57,9 +53,6 @@ namespace Avalonia.UnitTests
             renderInterface: new MockPlatformRenderInterface(),
             fontManagerImpl: new MockFontManagerImpl(),
             textShaperImpl: new MockTextShaperImpl());
-
-        public static readonly TestServices RealStyler = new TestServices(
-            styler: new Styler());
 
         public static readonly TestServices TextServices = new TestServices(
             assetLoader: new AssetLoader(),
@@ -80,7 +73,6 @@ namespace Avalonia.UnitTests
             IRenderTimer renderLoop = null,
             IScheduler scheduler = null,
             ICursorFactory standardCursorFactory = null,
-            IStyler styler = null,
             Func<IStyle> theme = null,
             IPlatformThreadingInterface threadingInterface = null,
             IFontManagerImpl fontManagerImpl = null,
@@ -101,7 +93,6 @@ namespace Avalonia.UnitTests
             TextShaperImpl = textShaperImpl;
             Scheduler = scheduler;
             StandardCursorFactory = standardCursorFactory;
-            Styler = styler;
             Theme = theme;
             ThreadingInterface = threadingInterface;
             WindowImpl = windowImpl;
@@ -121,7 +112,6 @@ namespace Avalonia.UnitTests
         public ITextShaperImpl TextShaperImpl { get; }
         public IScheduler Scheduler { get; }
         public ICursorFactory StandardCursorFactory { get; }
-        public IStyler Styler { get; }
         public Func<IStyle> Theme { get; }
         public IPlatformThreadingInterface ThreadingInterface { get; }
         public IWindowImpl WindowImpl { get; }
@@ -140,8 +130,7 @@ namespace Avalonia.UnitTests
             IRenderTimer renderLoop = null,
             IScheduler scheduler = null,
             ICursorFactory standardCursorFactory = null,
-            IStyler styler = null,
-            Func<Styles> theme = null,
+            Func<IStyle> theme = null,
             IPlatformThreadingInterface threadingInterface = null,
             IFontManagerImpl fontManagerImpl = null,
             ITextShaperImpl textShaperImpl = null,
@@ -162,7 +151,6 @@ namespace Avalonia.UnitTests
                 textShaperImpl: textShaperImpl ?? TextShaperImpl,
                 scheduler: scheduler ?? Scheduler,
                 standardCursorFactory: standardCursorFactory ?? StandardCursorFactory,
-                styler: styler ?? Styler,
                 theme: theme ?? Theme,
                 threadingInterface: threadingInterface ?? ThreadingInterface,
                 windowingPlatform: windowingPlatform ?? WindowingPlatform,
@@ -180,17 +168,5 @@ namespace Avalonia.UnitTests
                 x.CreateStreamGeometry() == Mock.Of<IStreamGeometryImpl>(
                     y => y.Open() == Mock.Of<IStreamGeometryContextImpl>()));
         }
-    }
-
-    public class AppBuilder : AppBuilderBase<AppBuilder>
-    {
-        public AppBuilder()
-            : base(new StandardRuntimePlatform(),
-                  builder => StandardRuntimePlatformServices.Register(builder.Instance?.GetType()
-                      ?.GetTypeInfo().Assembly))
-        {
-        }
-
-        protected override bool CheckSetup => false;
     }
 }
