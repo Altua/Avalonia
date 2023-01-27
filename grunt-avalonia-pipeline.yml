@@ -187,7 +187,7 @@ jobs:
       command: 'push'
       packagesToPush: '$(Build.SourcesDirectory)/artifacts/nuget/*.nupkg'
       nuGetFeedType: 'internal'
-      publishVstsFeed: '715be60c-8b74-4b28-ae9b-ef0ea6be5ef0/4e49abb7-b8fd-4c99-b31f-6ac3c25e6fe3'
+      publishVstsFeed: 'a0b0aaaa-c5cc-43c6-af3e-60bcbbc1f245'
 
   # - task: PublishBuildArtifacts@1
   #   inputs:
