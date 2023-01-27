@@ -112,7 +112,7 @@ public partial class Build
                 }
                 else
                 {
-                    // Always add branch to version tag when on release branch
+                    // Always add branch to version tag when in nuget release mode
                     Version += $"-{AzurePipelines.Instance.SourceBranchName}";
                 }
 
