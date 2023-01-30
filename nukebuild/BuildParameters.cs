@@ -67,7 +67,7 @@ public partial class Build
             SkipPreviewer = b.SkipPreviewer;
 
             // CONFIGURATION
-            MainRepo = "https://github.com/AvaloniaUI/Avalonia";
+            MainRepo = "https://github.com/Altua/Avalonia";
             MasterBranch = "refs/heads/master";
             ReleaseBranchPrefix = "refs/heads/release/";
             ReleaseConfiguration = "Release";
@@ -109,6 +109,11 @@ public partial class Build
                 {
                     // Use AssemblyVersion with Build as version
                     Version += "-cibuild" + int.Parse(Environment.GetEnvironmentVariable("BUILD_BUILDID")).ToString("0000000") + "-beta";
+                }
+                else
+                {
+                    // Always add branch to version tag when in nuget release mode
+                    Version += $"-{AzurePipelines.Instance.SourceBranchName}";
                 }
 
                 PublishTestResults = true;
