@@ -8,7 +8,7 @@ using Avalonia.Utilities;
 
 namespace Avalonia.Controls.Utils
 {
-    internal interface ICollectionChangedListener
+    public interface ICollectionChangedListener
     {
         void PreChanged(INotifyCollectionChanged sender, NotifyCollectionChangedEventArgs e);
         void Changed(INotifyCollectionChanged sender, NotifyCollectionChangedEventArgs e);
