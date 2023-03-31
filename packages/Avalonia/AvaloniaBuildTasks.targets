@@ -22,11 +22,11 @@
   </ItemGroup>
   
   <UsingTask TaskName="GenerateAvaloniaResourcesTask"
-             AssemblyFile="$(AvaloniaBuildTasksLocation)"
+             AssemblyFile="$(MSBuildThisFileDirectory)\..\tools\netstandard2.0\Avalonia.Build.Tasks.dll"
              />
 
   <UsingTask TaskName="CompileAvaloniaXamlTask"
-             AssemblyFile="$(AvaloniaBuildTasksLocation)"
+             AssemblyFile="$(MSBuildThisFileDirectory)\..\tools\netstandard2.0\Avalonia.Build.Tasks.dll"
              />
 
 
