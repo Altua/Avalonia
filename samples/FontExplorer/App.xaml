@@ -1,0 +1,14 @@
+<Application xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             Name="Avalonia FontExplorer"
+             x:Class="FontExplorer.App">
+  <Application.Resources>
+    <ResourceDictionary>
+      
+    </ResourceDictionary>
+  </Application.Resources>
+  <Application.Styles>
+    <FluentTheme />
+  </Application.Styles>
+  
+</Application>
