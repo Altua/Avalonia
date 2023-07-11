@@ -1,0 +1,15 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="using:FontExplorer.ViewModels"
+             mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+             x:Class="FontExplorer.Views.TypefaceView"
+             x:DataType="vm:TypefaceViewModel">
+  <Border BorderThickness="5" BorderBrush="Coral">
+    <StackPanel>
+    <TextBlock Text="{Binding Name}" />
+    <TextBlock Text="{Binding FamilyName}" />
+    </StackPanel>
+  </Border>
+</UserControl>

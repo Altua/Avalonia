@@ -22,7 +22,9 @@ namespace FontExplorer
         {
             if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktopLifetime)
             {
-                desktopLifetime.MainWindow = new MainWindow();
+                desktopLifetime.MainWindow = new Views.MainWindow() { 
+                    DataContext = new ViewModels.MainWindowViewModel()
+                };
             }
 
             base.OnFrameworkInitializationCompleted();
