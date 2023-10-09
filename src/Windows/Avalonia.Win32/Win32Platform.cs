@@ -48,21 +48,27 @@ namespace Avalonia.Win32
         private Win32DispatcherImpl _dispatcher;
 
         private SynchronizationContext? _synchronizationContext;
-        private bool _enforcePerMonitorAwareness;
+        private IntPtr? _enforceThreadAwareness;
 
         public Win32Platform()
         {
             _synchronizationContext = SynchronizationContext.Current;
 
-            _enforcePerMonitorAwareness = SetDpiAwareness();
+            _enforceThreadAwareness = SetDpiAwareness() ? DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2 : null;
             CreateMessageWindow();
             _dispatcher = new Win32DispatcherImpl(_hwnd);
         }
 
         internal static Win32Platform Instance => s_instance;
+
         internal static IPlatformSettings PlatformSettings => AvaloniaLocator.Current.GetRequiredService<IPlatformSettings>();
 
         internal IntPtr Handle => _hwnd;
+
+        public void ChangeThreadDpiAwarenessContext(IntPtr context)
+        {
+            _enforceThreadAwareness = context;
+        }
 
         /// <summary>
         /// Gets the actual WindowsVersion. Same as the info returned from RtlGetVersion.
@@ -84,9 +90,9 @@ namespace Avalonia.Win32
                 SynchronizationContext.SetSynchronizationContext(_synchronizationContext);
             }
 
-            if (_enforcePerMonitorAwareness)
+            if (_enforceThreadAwareness is not null)
             {
-                SetThreadDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2);
+                SetThreadDpiAwarenessContext(_enforceThreadAwareness.Value);
             }
         }
 
