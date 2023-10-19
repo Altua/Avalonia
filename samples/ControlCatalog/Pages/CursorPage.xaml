@@ -25,6 +25,9 @@
       <Button Cursor="{Binding CustomCursor}" Margin="0 8" Padding="16">
         <TextBlock>Custom Cursor</TextBlock>
       </Button>
+      <Button Cursor="{Binding CurFileCursor}" Margin="0 8" Padding="16">
+        <TextBlock>Cur File Cursor (Windows only)</TextBlock>
+      </Button>
     </StackPanel>
  </Grid>
 </UserControl>

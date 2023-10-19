@@ -1317,6 +1317,13 @@ namespace Avalonia.Win32.Interop
         public static extern IntPtr CreateIconIndirect([In] ref ICONINFO iconInfo);
 
         [DllImport("user32.dll")]
+        public static extern IntPtr LoadCursorFromFile(string lpFileName);
+
+        [DllImport("user32.dll")]
+        public static extern IntPtr LoadImage(IntPtr hinst, string stName, int nType, int cxDesired, int cyDesired, int nFlags);
+
+
+        [DllImport("user32.dll")]
         public static extern bool DestroyIcon(IntPtr hIcon);
 
         [DllImport("user32.dll", EntryPoint = "PeekMessageW", ExactSpelling = true)]
@@ -1985,6 +1992,12 @@ namespace Avalonia.Win32.Interop
         public const int CPS_CONVERT = 2;
         public const int CPS_REVERT = 3;
         public const int CPS_CANCEL = 4;
+
+        public const int IMAGE_CURSOR = 2;
+
+        public const int LR_DEFAULTCOLOR = 0x00000000;
+        public const int LR_LOADFROMFILE = 0x00000010;
+        public const int LR_DEFAULTSIZE = 0x00000040;
 
         [StructLayout(LayoutKind.Sequential)]
         internal struct CANDIDATEFORM

@@ -11,7 +11,7 @@ using SdPixelFormat = System.Drawing.Imaging.PixelFormat;
 
 namespace Avalonia.Win32
 {
-    internal class CursorFactory : ICursorFactory
+    public class CursorFactory : ICursorFactory
     {
         public static CursorFactory Instance { get; } = new CursorFactory();
 
@@ -105,6 +105,45 @@ namespace Avalonia.Win32
             };
 
             return new CursorImpl(UnmanagedMethods.CreateIconIndirect(ref info), true);
+        }
+
+        public ICursorImpl CreateCursorFromCurFile(Uri curFile, bool scaleWithDpi)
+        {
+            var loader = AvaloniaLocator.Current.GetRequiredService<IAssetLoader>();
+            using Stream s = loader.Open(curFile);
+
+            string tempFilePath = Path.GetTempFileName();
+            try
+            {
+                using (FileStream fs = new FileStream(tempFilePath, FileMode.Create))
+                {
+                    s.CopyTo(fs);
+                }
+
+                IntPtr cursorHandle = UnmanagedMethods.LoadImage(IntPtr.Zero,
+                    tempFilePath,
+                    UnmanagedMethods.IMAGE_CURSOR,
+                    0, 0,
+                    UnmanagedMethods.LR_DEFAULTCOLOR |
+                    UnmanagedMethods.LR_LOADFROMFILE |
+                    (scaleWithDpi ? UnmanagedMethods.LR_DEFAULTSIZE : 0x0000));
+
+
+                if (cursorHandle == IntPtr.Zero)
+                {
+                    throw new FileNotFoundException("Cursor file could not be loaded", tempFilePath);
+                }
+
+                return new CursorImpl(cursorHandle, true);
+            }
+            finally
+            {
+                try
+                {
+                    File.Delete(tempFilePath);
+                }
+                catch { }
+            }
         }
 
         private static SdBitmap LoadSystemDrawingBitmap(IBitmapImpl bitmap)

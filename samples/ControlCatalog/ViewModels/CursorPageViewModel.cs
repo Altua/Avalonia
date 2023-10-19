@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.InteropServices;
 using Avalonia;
 using Avalonia.Input;
 using Avalonia.Media.Imaging;
@@ -22,11 +23,23 @@ namespace ControlCatalog.ViewModels
             var s = loader.Open(new Uri("avares://ControlCatalog/Assets/avalonia-32.png"));
             var bitmap = new Bitmap(s);
             CustomCursor = new Cursor(bitmap, new PixelPoint(16, 16));
+
+
+            var cursorFactory = AvaloniaLocator.Current.GetRequiredService<ICursorFactory>();
+
+            if (cursorFactory is Avalonia.Win32.CursorFactory winCursorFactory)
+            {
+                CurFileCursor = new Cursor(
+                    winCursorFactory.CreateCursorFromCurFile(new Uri("avares://ControlCatalog/Assets/Duplication.cur"), true),
+                    "EyeDropper");
+            }
         }
 
         public IEnumerable<StandardCursorModel> StandardCursors { get; }
         
         public Cursor CustomCursor { get; }
+
+        public Cursor CurFileCursor { get; }
     }
     
     public class StandardCursorModel
