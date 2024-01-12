@@ -18,7 +18,7 @@ namespace Avalonia.Controls.Documents
             AvaloniaProperty.Register<Span, InlineCollection>(
                 nameof(Inlines));
 
-        [System.Diagnostics.CodeAnalysis.SuppressMessage("AvaloniaProperty", "AVP1012", 
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("AvaloniaProperty", "AVP1012",
             Justification = "Collection properties shouldn't be set with SetCurrentValue.")]
         public Span()
         {
@@ -38,43 +38,6 @@ namespace Avalonia.Controls.Documents
             set => SetValue(InlinesProperty, value);
         }
 
-        internal override void BuildTextRun(IList<TextRun> textRuns)
-        {
-            foreach (var inline in Inlines)
-            {
-                inline.BuildTextRun(textRuns);
-            }
-        }
-
-        internal override void AppendText(StringBuilder stringBuilder)
-        {
-            foreach (var inline in Inlines)
-            {
-                inline.AppendText(stringBuilder);
-            }
-        }
-
-        /// <inheritdoc />
-        protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
-        {
-            base.OnPropertyChanged(change);
-
-            switch (change.Property.Name)
-            {
-                case nameof(InlinesProperty):
-                    OnInlinesChanged(change.OldValue as InlineCollection, change.NewValue as InlineCollection);
-                    InlineHost?.Invalidate();
-                    break;
-            }
-        }
-
-        internal override void OnInlineHostChanged(IInlineHost? oldValue, IInlineHost? newValue)
-        {
-            base.OnInlineHostChanged(oldValue, newValue);
-
-            Inlines.InlineHost = newValue;
-        }
-
         private void OnInlinesChanged(InlineCollection? oldValue, InlineCollection? newValue)
         {
             void OnInlinesInvalidated(object? sender, EventArgs e)
@@ -92,6 +55,43 @@ namespace Avalonia.Controls.Documents
                 newValue.LogicalChildren = LogicalChildren;
                 newValue.InlineHost = InlineHost;
                 newValue.Invalidated += OnInlinesInvalidated;
+            }
+        }
+
+        public override void AppendText(StringBuilder stringBuilder)
+        {
+            foreach (var inline in Inlines)
+            {
+                inline.AppendText(stringBuilder);
+            }
+        }
+
+        public override void BuildTextRun(IList<TextRun> textRuns)
+        {
+            foreach (var inline in Inlines)
+            {
+                inline.BuildTextRun(textRuns);
+            }
+        }
+
+        internal override void OnInlineHostChanged(IInlineHost? oldValue, IInlineHost? newValue)
+        {
+            base.OnInlineHostChanged(oldValue, newValue);
+
+            Inlines.InlineHost = newValue;
+        }
+
+        /// <inheritdoc />
+        protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
+        {
+            base.OnPropertyChanged(change);
+
+            switch (change.Property.Name)
+            {
+                case nameof(InlinesProperty):
+                    OnInlinesChanged(change.OldValue as InlineCollection, change.NewValue as InlineCollection);
+                    InlineHost?.Invalidate();
+                    break;
             }
         }
     }

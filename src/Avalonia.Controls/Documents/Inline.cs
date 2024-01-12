@@ -10,12 +10,6 @@ namespace Avalonia.Controls.Documents
     /// </summary>
     public abstract class Inline : TextElement
     {
-        /// <summary>
-        /// AvaloniaProperty for <see cref="TextDecorations" /> property.
-        /// </summary>
-        public static readonly StyledProperty<TextDecorationCollection?> TextDecorationsProperty =
-            AvaloniaProperty.Register<Inline, TextDecorationCollection?>(
-                nameof(TextDecorations));
 
         /// <summary>
         /// AvaloniaProperty for <see cref="BaselineAlignment" /> property.
@@ -24,15 +18,12 @@ namespace Avalonia.Controls.Documents
             AvaloniaProperty.Register<Inline, BaselineAlignment>(
                 nameof(BaselineAlignment),
                 BaselineAlignment.Baseline);
-
         /// <summary>
-        /// The TextDecorations property specifies decorations that are added to the text of an element.
+        /// AvaloniaProperty for <see cref="TextDecorations" /> property.
         /// </summary>
-        public TextDecorationCollection? TextDecorations
-        {
-            get { return GetValue(TextDecorationsProperty); }
-            set { SetValue(TextDecorationsProperty, value); }
-        }
+        public static readonly StyledProperty<TextDecorationCollection?> TextDecorationsProperty =
+            AvaloniaProperty.Register<Inline, TextDecorationCollection?>(
+                nameof(TextDecorations));
 
         /// <summary>
         /// Describes how the baseline for a text-based element is positioned on the vertical axis,
@@ -44,38 +35,47 @@ namespace Avalonia.Controls.Documents
             set { SetValue(BaselineAlignmentProperty, value); }
         }
 
-        internal abstract void BuildTextRun(IList<TextRun> textRuns);
+        /// <summary>
+        /// The TextDecorations property specifies decorations that are added to the text of an element.
+        /// </summary>
+        public TextDecorationCollection? TextDecorations
+        {
+            get { return GetValue(TextDecorationsProperty); }
+            set { SetValue(TextDecorationsProperty, value); }
+        }
 
-        internal abstract void AppendText(StringBuilder stringBuilder);
+        public abstract void AppendText(StringBuilder stringBuilder);
+
+        public abstract void BuildTextRun(IList<TextRun> textRuns);
 
         protected TextRunProperties CreateTextRunProperties()
         {
             var textDecorations = TextDecorations;
             var background = Background;
 
-            if(Parent is Inline inline)
+            if (Parent is Inline inline)
             {
-                if(textDecorations == null)
+                if (textDecorations == null)
                 {
                     textDecorations = inline.TextDecorations;
                 }
 
-                if(background == null)
+                if (background == null)
                 {
                     background = inline.Background;
                 }
             }
-            
+
             var fontStyle = FontStyle;
 
-            if(Parent is Italic)
+            if (Parent is Italic)
             {
                 fontStyle = FontStyle.Italic;
             }
 
             var fontWeight = FontWeight;
 
-            if(Parent is Bold)
+            if (Parent is Bold)
             {
                 fontWeight = FontWeight.Bold;
             }

@@ -19,7 +19,12 @@ namespace Avalonia.Controls.Documents
         {
         }
 
-        internal override void BuildTextRun(IList<TextRun> textRuns)
+        public override void AppendText(StringBuilder stringBuilder)
+        {
+            stringBuilder.Append(Environment.NewLine);
+        }
+
+        public override void BuildTextRun(IList<TextRun> textRuns)
         {
             var text = Environment.NewLine;
 
@@ -28,11 +33,6 @@ namespace Avalonia.Controls.Documents
             var textCharacters = new TextCharacters(text, textRunProperties);
 
             textRuns.Add(textCharacters);
-        }
-
-        internal override void AppendText(StringBuilder stringBuilder)
-        {
-            stringBuilder.Append(Environment.NewLine);
         }
     }
 }

@@ -56,13 +56,13 @@ namespace Avalonia.Controls.Documents
             set => SetValue(ChildProperty, value);
         }
 
-        internal override void BuildTextRun(IList<TextRun> textRuns)
+        public override void AppendText(StringBuilder stringBuilder)
         {
-            textRuns.Add(new EmbeddedControlRun(Child, CreateTextRunProperties()));
         }
 
-        internal override void AppendText(StringBuilder stringBuilder)
+        public override void BuildTextRun(IList<TextRun> textRuns)
         {
+            textRuns.Add(new EmbeddedControlRun(Child, CreateTextRunProperties()));
         }
 
         protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
@@ -71,12 +71,12 @@ namespace Avalonia.Controls.Documents
 
             if (change.Property == ChildProperty)
             {
-                if(change.OldValue is Control oldChild)
+                if (change.OldValue is Control oldChild)
                 {
                     LogicalChildren.Remove(oldChild);
                 }
 
-                if(change.NewValue is Control newChild)
+                if (change.NewValue is Control newChild)
                 {
                     LogicalChildren.Add(newChild);
                 }

@@ -12,6 +12,17 @@ namespace Avalonia.Controls.Documents
     /// </summary>
     public class Run : Inline
     {
+
+        /// <summary>
+        /// Dependency property backing Text.
+        /// </summary>
+        /// <remarks>
+        /// Note that when a TextRange that intersects with this Run gets modified (e.g. by editing 
+        /// a selection in RichTextBox), we will get two changes to this property since we delete 
+        /// and then insert when setting the content of a TextRange.
+        /// </remarks>
+        public static readonly StyledProperty<string?> TextProperty = AvaloniaProperty.Register<Run, string?>(
+            nameof(Text), defaultBindingMode: BindingMode.TwoWay);
         /// <summary>
         /// Initializes an instance of Run class.
         /// </summary>
@@ -31,26 +42,23 @@ namespace Avalonia.Controls.Documents
         }
 
         /// <summary>
-        /// Dependency property backing Text.
-        /// </summary>
-        /// <remarks>
-        /// Note that when a TextRange that intersects with this Run gets modified (e.g. by editing 
-        /// a selection in RichTextBox), we will get two changes to this property since we delete 
-        /// and then insert when setting the content of a TextRange.
-        /// </remarks>
-        public static readonly StyledProperty<string?> TextProperty = AvaloniaProperty.Register<Run, string?> (
-            nameof (Text), defaultBindingMode: BindingMode.TwoWay);
-
-        /// <summary>
         /// The content spanned by this TextElement.
         /// </summary>
         [Content]
-        public string? Text {
-            get { return GetValue (TextProperty); }
-            set { SetValue (TextProperty, value); }
+        public string? Text
+        {
+            get { return GetValue(TextProperty); }
+            set { SetValue(TextProperty, value); }
         }
 
-        internal override void BuildTextRun(IList<TextRun> textRuns)
+        public override void AppendText(StringBuilder stringBuilder)
+        {
+            var text = Text ?? "";
+
+            stringBuilder.Append(text);
+        }
+
+        public override void BuildTextRun(IList<TextRun> textRuns)
         {
             var text = Text ?? "";
 
@@ -59,18 +67,11 @@ namespace Avalonia.Controls.Documents
                 return;
             }
 
-            var textRunProperties = CreateTextRunProperties();           
+            var textRunProperties = CreateTextRunProperties();
 
             var textCharacters = new TextCharacters(text, textRunProperties);
 
             textRuns.Add(textCharacters);
-        }
-
-        internal override void AppendText(StringBuilder stringBuilder)
-        {
-            var text = Text ?? "";
-
-            stringBuilder.Append(text);
         }
 
         protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
