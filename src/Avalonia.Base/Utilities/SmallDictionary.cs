@@ -127,6 +127,18 @@ internal struct InlineDictionary<TKey, TValue> : IEnumerable<KeyValuePair<TKey, 
         return false;
     }
 
+    public void Clear()
+    {
+        if(_data == null)
+            return;
+        if(_data is KeyValuePair[] arr)
+            Array.Clear(arr, 0, arr.Length);
+        else if (_data is Dictionary<TKey, TValue?> dic)
+            dic.Clear();
+        else
+            _data = null;
+    }
+
     public bool HasEntries => _data != null;
     
     public bool TryGetValue(TKey key, [MaybeNullWhen(false)]out TValue value)
@@ -294,7 +306,7 @@ internal struct InlineDictionary<TKey, TValue> : IEnumerable<KeyValuePair<TKey, 
         private readonly KeyValuePair[]? _arr;
         private KeyValuePair<TKey, TValue> _first;
         private int _index;
-        private Type _type;
+        private readonly Type _type;
         enum Type
         {
             Empty, Single, Array, Dictionary
