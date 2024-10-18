@@ -34,9 +34,9 @@ namespace Avalonia.Markup.Xaml.XamlIl.CompilerExtensions
             return baseKey + $"[{indexerArgumentsKey}]";
         }
 
-        public IXamlType Emit(XamlEmitContext<IXamlILEmitter, XamlILNodeEmitResult> context, IXamlILEmitter codeGen, IXamlProperty property, IEnumerable<IXamlAstValueNode> indexerArguments = null, string indexerArgumentsKey = null)
+        public IXamlType Emit(XamlEmitContext<IXamlILEmitter, XamlILNodeEmitResult> context, IXamlILEmitter codeGen, IXamlProperty property, IReadOnlyCollection<IXamlAstValueNode> indexerArguments = null, string indexerArgumentsKey = null)
         {
-            indexerArguments = indexerArguments ?? Enumerable.Empty<IXamlAstValueNode>();
+            indexerArguments = indexerArguments ?? Array.Empty<IXamlAstValueNode>();
             var types = context.GetAvaloniaTypes();
             IXamlMethod Get()
             {
@@ -57,7 +57,7 @@ namespace Avalonia.Markup.Xaml.XamlIl.CompilerExtensions
 
                 var name = lst.Count == 0 ? key : key + "_" + context.Configuration.IdentifierGenerator.GenerateIdentifierPart();
                 
-                var field = _builder.DefineField(types.IPropertyInfo, name + "!Field", false, true);
+                var field = _builder.DefineField(types.IPropertyInfo, name + "!Field", XamlVisibility.Private, true);
 
                 void Load(IXamlMethod m, IXamlILEmitter cg, bool passThis)
                 {
@@ -80,7 +80,7 @@ namespace Avalonia.Markup.Xaml.XamlIl.CompilerExtensions
                 var getter = property.Getter == null ?
                     null :
                     _builder.DefineMethod(types.XamlIlTypes.Object,
-                        new[] {types.XamlIlTypes.Object}, name + "!Getter", false, true, false);
+                        new[] {types.XamlIlTypes.Object}, name + "!Getter", XamlVisibility.Private, true, false);
                 if (getter != null)
                 {
                     Load(property.Getter, getter.Generator, !property.Getter.IsStatic);
@@ -95,23 +95,25 @@ namespace Avalonia.Markup.Xaml.XamlIl.CompilerExtensions
                     null :
                     _builder.DefineMethod(types.XamlIlTypes.Void,
                         new[] {types.XamlIlTypes.Object, types.XamlIlTypes.Object},
-                        name + "!Setter", false, true, false);
+                        name + "!Setter", XamlVisibility.Private, true, false);
                 if (setter != null)
                 {
                     Load(property.Setter, setter.Generator, !property.Getter.IsStatic);
                     
                     setter.Generator.Ldarg(1);
-                    if (property.Setter.Parameters[0].IsValueType)
-                        setter.Generator.Unbox_Any(property.Setter.Parameters[0]);
+
+                    var valueIndex = indexerArguments.Count;
+                    if (property.Setter.Parameters[valueIndex].IsValueType)
+                        setter.Generator.Unbox_Any(property.Setter.Parameters[valueIndex]);
                     else
-                        setter.Generator.Castclass(property.Setter.Parameters[0]);
+                        setter.Generator.Castclass(property.Setter.Parameters[valueIndex]);
                     setter.Generator
                         .EmitCall(property.Setter, true)
                         .Ret();
                 }
 
                 var get = _builder.DefineMethod(types.IPropertyInfo, Array.Empty<IXamlType>(),
-                    name + "!Property", true, true, false);
+                    name + "!Property", XamlVisibility.Public, true, false);
 
 
                 var ctor = types.ClrPropertyInfo.Constructors.First(c =>
