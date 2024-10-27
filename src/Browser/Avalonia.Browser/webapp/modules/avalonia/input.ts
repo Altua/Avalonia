@@ -74,8 +74,8 @@ export class InputHelper {
 
     public static subscribeKeyEvents(
         element: HTMLInputElement,
-        keyDownCallback: (code: string, key: string, modifiers: RawInputModifiers) => boolean,
-        keyUpCallback: (code: string, key: string, modifiers: RawInputModifiers) => boolean) {
+        keyDownCallback: (code: string, key: string, modifiers: string) => boolean,
+        keyUpCallback: (code: string, key: string, modifiers: string) => boolean) {
         const keyDownHandler = (args: KeyboardEvent) => {
             if (keyDownCallback(args.code, args.key, this.getModifiers(args))) {
                 if (this.clipboardState !== ClipboardState.Pending) {
@@ -161,6 +161,7 @@ export class InputHelper {
         pointerDownCallback: (args: PointerEvent) => boolean,
         pointerUpCallback: (args: PointerEvent) => boolean,
         pointerCancelCallback: (args: PointerEvent) => boolean,
+        mouseLeaveCallback: (args: MouseEvent) => boolean,
         wheelCallback: (args: WheelEvent) => boolean
     ) {
         const pointerMoveHandler = (args: PointerEvent) => {
@@ -183,6 +184,11 @@ export class InputHelper {
             args.preventDefault();
         };
 
+        const mouseLeaveHandler = (args: MouseEvent) => {
+            mouseLeaveCallback(args);
+            args.preventDefault();
+        };
+
         const wheelHandler = (args: WheelEvent) => {
             wheelCallback(args);
             args.preventDefault();
@@ -193,12 +199,14 @@ export class InputHelper {
         element.addEventListener("pointerup", pointerUpHandler);
         element.addEventListener("wheel", wheelHandler);
         element.addEventListener("pointercancel", pointerCancelHandler);
+        element.addEventListener("mouseleave", mouseLeaveHandler);
 
         return () => {
             element.removeEventListener("pointerover", pointerMoveHandler);
             element.removeEventListener("pointerdown", pointerDownHandler);
             element.removeEventListener("pointerup", pointerUpHandler);
             element.removeEventListener("pointercancel", pointerCancelHandler);
+            element.removeEventListener("mouseleave", mouseLeaveHandler);
             element.removeEventListener("wheel", wheelHandler);
         };
     }
@@ -316,7 +324,7 @@ export class InputHelper {
         inputElement.style.width = `${inputElement.scrollWidth}px`;
     }
 
-    private static getModifiers(args: KeyboardEvent): RawInputModifiers {
+    private static getModifiers(args: KeyboardEvent): string {
         let modifiers = RawInputModifiers.None;
 
         if (args.ctrlKey) { modifiers |= RawInputModifiers.Control; }
@@ -324,6 +332,16 @@ export class InputHelper {
         if (args.shiftKey) { modifiers |= RawInputModifiers.Shift; }
         if (args.metaKey) { modifiers |= RawInputModifiers.Meta; }
 
-        return modifiers;
+        return modifiers.toString();
+    }
+
+    public static setPointerCapture(containerElement: HTMLInputElement, pointerId: number): void {
+        containerElement.setPointerCapture(pointerId);
+    }
+
+    public static releasePointerCapture(containerElement: HTMLInputElement, pointerId: number): void {
+        if (containerElement.hasPointerCapture(pointerId)) {
+            containerElement.releasePointerCapture(pointerId);
+        }
     }
 }

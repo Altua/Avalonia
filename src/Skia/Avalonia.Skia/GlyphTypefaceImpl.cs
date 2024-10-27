@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Diagnostics.CodeAnalysis;
+using System.IO;
 using System.Runtime.InteropServices;
 using Avalonia.Media;
 using HarfBuzzSharp;
@@ -6,7 +8,7 @@ using SkiaSharp;
 
 namespace Avalonia.Skia
 {
-    public class GlyphTypefaceImpl : IGlyphTypeface
+    public class GlyphTypefaceImpl : IGlyphTypeface, IGlyphTypeface2
     {
         private bool _isDisposed;
         private readonly SKTypeface _typeface;
@@ -77,6 +79,8 @@ namespace Avalonia.Skia
         public FontStyle Style { get; }
 
         public FontStretch Stretch { get; }
+
+        public SKTypeface UnsafeSKTypeface => _typeface;
 
         public bool TryGetGlyphMetrics(ushort glyph, out GlyphMetrics metrics)
         {
@@ -164,7 +168,7 @@ namespace Avalonia.Skia
         }
 
         public SKFont CreateSKFont(float size)
-            => new(_typeface, size, skewX: (FontSimulations & FontSimulations.Oblique) != 0 ? -0.2f : 0.0f)
+            => new(_typeface, size, skewX: (FontSimulations & FontSimulations.Oblique) != 0 ? -0.3f : 0.0f)
             {
                 LinearMetrics = true,
                 Embolden = (FontSimulations & FontSimulations.Bold) != 0
@@ -197,6 +201,28 @@ namespace Avalonia.Skia
         public bool TryGetTable(uint tag, out byte[] table)
         {
             return _typeface.TryGetTableData(tag, out table);
+        }
+
+        public bool TryGetStream([NotNullWhen(true)] out Stream? stream)
+        {
+            try
+            {
+                var asset = _typeface.OpenStream();
+                var size = asset.Length;
+                var buffer = new byte[size];
+
+                asset.Read(buffer, size);
+
+                stream = new MemoryStream(buffer);
+
+                return true;
+            }
+            catch
+            {
+                stream = null;
+
+                return false;
+            }
         }
     }
 }

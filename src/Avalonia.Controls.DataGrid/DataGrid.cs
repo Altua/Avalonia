@@ -22,6 +22,8 @@ using System.Text;
 using System.Linq;
 using Avalonia.Input.Platform;
 using System.ComponentModel.DataAnnotations;
+using Avalonia.Automation.Peers;
+using Avalonia.Controls.Automation.Peers;
 using Avalonia.Controls.Utils;
 using Avalonia.Layout;
 using Avalonia.Controls.Metadata;
@@ -716,6 +718,17 @@ namespace Avalonia.Controls
             set { SetValue(RowDetailsVisibilityModeProperty, value); }
         }
 
+
+        public static readonly DirectProperty<DataGrid, IDataGridCollectionView> CollectionViewProperty =
+            AvaloniaProperty.RegisterDirect<DataGrid, IDataGridCollectionView>(nameof(CollectionView),
+                o => o.CollectionView);
+
+        /// <summary>
+        /// Gets current <see cref="IDataGridCollectionView"/>.
+        /// </summary>
+        public IDataGridCollectionView CollectionView =>
+            DataConnection.CollectionView;
+
         static DataGrid()
         {
             AffectsMeasure<DataGrid>(
@@ -789,6 +802,11 @@ namespace Avalonia.Controls
             UpdatePseudoClasses();
         }
 
+        protected override AutomationPeer OnCreateAutomationPeer()
+        {
+            return new DataGridAutomationPeer(this);
+        }
+
         private void SetValueNoCallback<T>(AvaloniaProperty<T> property, T value, BindingPriority priority = BindingPriority.LocalValue)
         {
             _areHandlersSuspended = true;
@@ -837,6 +855,8 @@ namespace Avalonia.Controls
             {
                 Debug.Assert(DataConnection != null);
 
+                var oldCollectionView = DataConnection.CollectionView;
+
                 var oldValue = (IEnumerable)e.OldValue;
                 var newItemsSource = (IEnumerable)e.NewValue;
 
@@ -865,14 +885,24 @@ namespace Avalonia.Controls
 
                 // Wrap an IEnumerable in an ICollectionView if it's not already one
                 bool setDefaultSelection = false;
-                if (newItemsSource != null && !(newItemsSource is IDataGridCollectionView))
+                if (newItemsSource is IDataGridCollectionView newCollectionView)
                 {
-                    DataConnection.DataSource = DataGridDataConnection.CreateView(newItemsSource);
+                    setDefaultSelection = true;
                 }
                 else
                 {
-                    DataConnection.DataSource = newItemsSource;
-                    setDefaultSelection = true;
+                    newCollectionView =  newItemsSource is not null
+                        ? DataGridDataConnection.CreateView(newItemsSource)
+                        : default;
+                }
+
+                DataConnection.DataSource = newCollectionView;
+
+                if (oldCollectionView != DataConnection.CollectionView)
+                {
+                    RaisePropertyChanged(CollectionViewProperty, 
+                        oldCollectionView, 
+                        newCollectionView);
                 }
 
                 if (DataConnection.DataSource != null)
@@ -1153,7 +1183,7 @@ namespace Avalonia.Controls
                             row.EnsureHeaderStyleAndVisibility(null);
                             if (newValueRows)
                             {
-                                row.UpdatePseudoClasses();
+                                row.ApplyState();
                                 row.EnsureHeaderVisibility();
                             }
                         }
@@ -1690,7 +1720,7 @@ namespace Avalonia.Controls
                     // State for the old row needs to be applied after setting the new value
                     if (oldMouseOverRow != null)
                     {
-                        oldMouseOverRow.UpdatePseudoClasses();
+                        oldMouseOverRow.ApplyState();
                     }
 
                     if (_mouseOverRowIndex.HasValue)
@@ -1702,7 +1732,7 @@ namespace Avalonia.Controls
                             Debug.Assert(newMouseOverRow != null);
                             if (newMouseOverRow != null)
                             {
-                                newMouseOverRow.UpdatePseudoClasses();
+                                newMouseOverRow.ApplyState();
                             }
                         }
                     }
@@ -1826,12 +1856,6 @@ namespace Avalonia.Controls
         {
             get;
             private set;
-        }
-
-        internal bool UpdatedStateOnMouseLeftButtonDown
-        {
-            get;
-            set;
         }
 
         /// <summary>
@@ -2813,7 +2837,6 @@ namespace Avalonia.Controls
                         if (SelectionMode == DataGridSelectionMode.Extended && AnchorSlot != -1)
                         {
                             int anchorSlot = AnchorSlot;
-                            ClearRowSelection(slot, setAnchorSlot: false);
                             if (slot <= anchorSlot)
                             {
                                 SetRowsSelection(slot, anchorSlot);
@@ -4154,19 +4177,14 @@ namespace Avalonia.Controls
                             if (editingRow.IsValid)
                             {
                                 editingRow.IsValid = false;
-                                editingRow.UpdatePseudoClasses();
+                                editingRow.ApplyState();
                             }
                         }
 
                         if (editingElement != null)
                         {
-                            var errorList =
-                                binding.ValidationErrors
-                                       .SelectMany(ValidationUtil.UnpackException)
-                                       .Select(ValidationUtil.UnpackDataValidationException)
-                                       .ToList();
-
-                            DataValidationErrors.SetErrors(editingElement, errorList);
+                            DataValidationErrors.SetError(editingElement,
+                                new AggregateException(binding.ValidationErrors));
                         }
                     }
                 }
@@ -4350,7 +4368,7 @@ namespace Avalonia.Controls
             //IsTabStop = true;
             if (IsSlotVisible(EditingRow.Slot))
             {
-                EditingRow.UpdatePseudoClasses();
+                EditingRow.ApplyState();
             }
             ResetEditingRow();
             if (keepFocus)
@@ -6206,7 +6224,7 @@ namespace Avalonia.Controls
                             cell.UpdatePseudoClasses();
                         }
                     }
-                    EditingRow.UpdatePseudoClasses();
+                    EditingRow.ApplyState();
                 }
             }
             IsValid = true;
