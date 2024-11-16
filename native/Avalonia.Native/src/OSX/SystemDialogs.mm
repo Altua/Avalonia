@@ -137,7 +137,13 @@ public:
             {
                 auto windowBase = dynamic_cast<INSWindowHolder*>(parentWindowHandle);
                 
-                [panel beginSheetModalForWindow:windowBase->GetNSWindow() completionHandler:handler];
+                // PowerPoint hangs if this is called from Dispatcher.UIThread.Post(...)
+                // Possibly due to nested Dispatcher calls
+                // [panel beginSheetModalForWindow:windowBase->GetNSWindow() completionHandler:handler];
+                
+                // Fixed by forcing the panel to run as blocking modal
+                auto result = [panel runModal];
+                handler(result);
             }
             else
             {
@@ -219,7 +225,13 @@ public:
             {
                 auto windowHolder = dynamic_cast<INSWindowHolder*>(parentWindowHandle);
                 
-                [panel beginSheetModalForWindow:windowHolder->GetNSWindow() completionHandler:handler];
+                // PowerPoint hangs if this is called from Dispatcher.UIThread.Post(...)
+                // Possibly due to nested Dispatcher calls
+                // [panel beginSheetModalForWindow:windowBase->GetNSWindow() completionHandler:handler];
+                
+                // Fixed by forcing the panel to run as blocking modal
+                auto result = [panel runModal];
+                handler(result);
             }
             else
             {
@@ -289,7 +301,13 @@ public:
             {
                 auto windowBase = dynamic_cast<INSWindowHolder*>(parentWindowHandle);
                 
-                [panel beginSheetModalForWindow:windowBase->GetNSWindow() completionHandler:handler];
+                // PowerPoint hangs if this is called from Dispatcher.UIThread.Post(...)
+                // Possibly due to nested Dispatcher calls
+                // [panel beginSheetModalForWindow:windowBase->GetNSWindow() completionHandler:handler];
+                
+                // Fixed by forcing the panel to run as blocking modal
+                auto result = [panel runModal];
+                handler(result);
             }
             else
             {

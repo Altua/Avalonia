@@ -19,6 +19,7 @@ private:
     void InitializeColorPicker();
 public:
     WindowOverlayImpl(void* parentWindow, char* parentView, IAvnWindowEvents* events);
+    virtual NSWindow *GetNSWindow() override;
     virtual bool IsOverlay() override;
     virtual HRESULT GetScaling(double *ret) override;
     virtual HRESULT PointToClient(AvnPoint point, AvnPoint *ret) override;

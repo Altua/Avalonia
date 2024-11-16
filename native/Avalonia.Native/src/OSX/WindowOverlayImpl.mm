@@ -363,3 +363,7 @@ HRESULT WindowOverlayImpl::PickColor(AvnColor color, bool* cancel, AvnColor* ret
 
     return S_OK;
 }
+
+NSWindow *WindowOverlayImpl::GetNSWindow() {
+    return parentWindow;
+}
