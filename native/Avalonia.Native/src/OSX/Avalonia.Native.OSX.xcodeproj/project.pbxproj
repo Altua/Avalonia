@@ -200,8 +200,6 @@
 				520624B222973F4100C4DCEF /* menu.mm */,
 				EDF8CDCC2964CB01001EE34F /* PlatformSettings.mm */,
 				AB8F7D6A21482D7F0057DBA5 /* platformthreading.mm */,
-				183910513F396141938832B5 /* PopupImpl.h */,
-				18391BB698579F40F1783F31 /* PopupImpl.mm */,
 				AB7A61F02147C815003C5833 /* Products */,
 				1A3E5EA723E9E83B00EDE661 /* rendertarget.mm */,
 				1839171D898F9BFC1373631A /* ResizeScope.h */,
