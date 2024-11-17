@@ -138,7 +138,7 @@ public:
                 auto windowBase = dynamic_cast<INSWindowHolder*>(parentWindowHandle);
                 
                 // PowerPoint hangs if this is called from Dispatcher.UIThread.Post(...)
-                // Possibly due to nested Dispatcher calls
+                // Not sure yet on why this happens, possibly related to sandboxing
                 // [panel beginSheetModalForWindow:windowBase->GetNSWindow() completionHandler:handler];
                 
                 // Fixed by forcing the panel to run as blocking modal
@@ -226,7 +226,7 @@ public:
                 auto windowHolder = dynamic_cast<INSWindowHolder*>(parentWindowHandle);
                 
                 // PowerPoint hangs if this is called from Dispatcher.UIThread.Post(...)
-                // Possibly due to nested Dispatcher calls
+                // Not sure yet on why this happens, possibly related to sandboxing
                 // [panel beginSheetModalForWindow:windowBase->GetNSWindow() completionHandler:handler];
                 
                 // Fixed by forcing the panel to run as blocking modal
@@ -302,7 +302,7 @@ public:
                 auto windowBase = dynamic_cast<INSWindowHolder*>(parentWindowHandle);
                 
                 // PowerPoint hangs if this is called from Dispatcher.UIThread.Post(...)
-                // Possibly due to nested Dispatcher calls
+                // Not sure yet on why this happens, possibly related to sandboxing
                 // [panel beginSheetModalForWindow:windowBase->GetNSWindow() completionHandler:handler];
                 
                 // Fixed by forcing the panel to run as blocking modal
