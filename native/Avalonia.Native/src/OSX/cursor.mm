@@ -17,6 +17,8 @@ class CursorFactory : public ComSingleObject<IAvnCursorFactory, &IID_IAvnCursorF
     Cursor* resizeRightCursor = new Cursor([NSCursor resizeRightCursor]);
     Cursor* resizeWestEastCursor = new Cursor([NSCursor resizeLeftRightCursor]);
     Cursor* operationNotAllowedCursor = new Cursor([NSCursor operationNotAllowedCursor]);
+    Cursor* openHandCursor = new Cursor([NSCursor openHandCursor]);
+    Cursor* closedHandCursor = new Cursor([NSCursor closedHandCursor]);
     Cursor* noCursor = new Cursor([NSCursor arrowCursor], true);
 
     std::map<AvnStandardCursorType, Cursor*> s_cursorMap =
@@ -44,6 +46,8 @@ class CursorFactory : public ComSingleObject<IAvnCursorFactory, &IID_IAvnCursorF
         { CursorLeftSide, resizeLeftCursor },
         { CursorRightSide, resizeRightCursor },
         { CursorNo, operationNotAllowedCursor },
+        { CursorOpenHand, openHandCursor },
+        { CursorClosedHand, closedHandCursor },
         { CursorNone, noCursor }
     };
 
