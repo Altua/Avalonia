@@ -21,6 +21,7 @@ private:
     END_INTERFACE_MAP()
     void InitializeColorPicker();
     AvnInputModifiers GetCommandModifier(NSEventModifierFlags modFlag);
+    NSEvent* MakeRightMouseEvent(NSEvent* event);
 public:
     WindowOverlayImpl(void* parentWindow, char* parentView, IAvnWindowEvents* events);
     virtual ~WindowOverlayImpl();

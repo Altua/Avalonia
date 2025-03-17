@@ -96,7 +96,8 @@ WindowOverlayImpl::WindowOverlayImpl(void* parentWindow, char* parentView, IAvnW
         }
     }];
 
-    id leftMouseDownMonitor = [NSEvent addLocalMonitorForEventsMatchingMask:NSEventMaskLeftMouseDown handler:^NSEvent * (NSEvent * event) {
+    auto mouseEventMask = NSEventMaskLeftMouseDown | NSEventMaskLeftMouseUp;
+    id leftMouseEventMonitor = [NSEvent addLocalMonitorForEventsMatchingMask:mouseEventMask handler:^NSEvent * (NSEvent * event) {
         NSLog(@"MONITOR mouseDown START");
 
         if ([event window] != this->parentWindow)
@@ -117,12 +118,17 @@ WindowOverlayImpl::WindowOverlayImpl(void* parentWindow, char* parentView, IAvnW
         }
 
         auto hitTest = this->BaseEvents->HitTest(point);
-        if (hitTest == false)
+        if (hitTest == false && event.type == NSEventTypeLeftMouseDown)
         {
             this->BaseEvents->OnSlideMouseActivate(point);
         }
+        // if control is pressed switch event to right mouse event
+        else if (hitTest && (event.modifierFlags & NSEventModifierFlagControl) == NSEventModifierFlagControl)
+        {
+            return MakeRightMouseEvent(event);
+        }
 
-                return event;
+        return event;
     }];
     
     id keydownMonitor = [NSEvent addLocalMonitorForEventsMatchingMask:NSEventMaskKeyDown | NSEventMaskKeyUp | NSEventMaskFlagsChanged handler:^NSEvent * (NSEvent * event) {
@@ -208,7 +214,7 @@ WindowOverlayImpl::WindowOverlayImpl(void* parentWindow, char* parentView, IAvnW
         }
     }];
     
-    eventMonitors = [NSArray arrayWithObjects: mouseMovedMonitor, leftMouseDownMonitor, keydownMonitor, nil];
+    eventMonitors = [NSArray arrayWithObjects: mouseMovedMonitor, leftMouseEventMonitor, keydownMonitor, nil];
 }
 
 
@@ -230,6 +236,21 @@ AvnInputModifiers WindowOverlayImpl::GetCommandModifier(NSEventModifierFlags mod
     else
         return (AvnInputModifiers)rv;
 }
+
+NSEvent* WindowOverlayImpl::MakeRightMouseEvent(NSEvent* event)
+{
+    NSEvent* newEvent = [NSEvent mouseEventWithType: event.type == NSEventTypeLeftMouseDown ? NSEventTypeRightMouseDown : NSEventTypeRightMouseUp
+                                           location: event.locationInWindow
+                                      modifierFlags: event.modifierFlags
+                                          timestamp: event.timestamp
+                                       windowNumber: event.windowNumber
+                                            context: nil
+                                        eventNumber: event.eventNumber + 1
+                                         clickCount: event.clickCount
+                                           pressure: event.pressure];
+    return newEvent;
+}
+
 
 
 bool WindowOverlayImpl::IsOverlay()
