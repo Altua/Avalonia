@@ -245,7 +245,7 @@ NSEvent* WindowOverlayImpl::MakeRightMouseEvent(NSEvent* event)
                                           timestamp: event.timestamp
                                        windowNumber: event.windowNumber
                                             context: nil
-                                        eventNumber: event.eventNumber + 1
+                                        eventNumber: event.eventNumber
                                          clickCount: event.clickCount
                                            pressure: event.pressure];
     return newEvent;
