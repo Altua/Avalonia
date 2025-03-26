@@ -113,7 +113,7 @@ WindowOverlayImpl::WindowOverlayImpl(void* parentWindow, char* parentView, IAvnW
             this->BaseEvents->OnSlideMouseActivate(point);
         }
 
-                return event;
+        return event;
     }];
     
     // Add a list to store the special key codes that need to be sent to the AvnView
@@ -451,7 +451,7 @@ HRESULT WindowOverlayImpl::PickColor(AvnColor color, bool* cancel, AvnColor* ret
         }
     }
     
-    bool handled = [self keyboardEvent: event withType: type];
+    bool handled = event.window.firstResponder == self && [self keyboardEvent: event withType: type];
     if (!handled)
     {
         handled = self.parent->BaseEvents->MonitorKeyEvent(type, timestamp, modifiers, key);
