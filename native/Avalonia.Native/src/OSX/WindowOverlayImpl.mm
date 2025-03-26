@@ -421,40 +421,24 @@ HRESULT WindowOverlayImpl::PickColor(AvnColor color, bool* cancel, AvnColor* ret
 
 - (BOOL)performKeyEquivalent:(NSEvent *)event
 {
-    AvnInputModifiers modifiers = WindowOverlayImpl::GetCommandModifier([event modifierFlags]);
-    auto scanCode = [event keyCode];
-    auto key = VirtualKeyFromScanCode(scanCode, [event modifierFlags]);
+    if (!self.parent->IsOverlay()){
+        return [super performKeyEquivalent: event];
+    }
     
-    uint64_t timestamp = static_cast<uint64_t>([event timestamp] * 1000);
-    AvnRawKeyEventType type;
+    auto modifiers = WindowOverlayImpl::GetCommandModifier([event modifierFlags]);
+    auto key = VirtualKeyFromScanCode(event.keyCode, event.modifierFlags);
+    auto timestamp = static_cast<uint64_t>(event.timestamp * 1000);
+    AvnRawKeyEventType type = event.type == NSEventTypeKeyDown ? KeyDown : KeyUp;
 
-    // Type flag change with the set modifier is a key down.
-    // Same with the unset modifier is a key up. [When the modifier key is released, the flag changes to 0x0]
-    // This is handled in the else block
-    if ([event type] == NSEventTypeKeyDown)
-    {
-        type = KeyDown;
-    }
-    else if ([event type] == NSEventTypeKeyUp)
-    {
-        type = KeyUp;
-    }
-    else
-    {
-        if (modifiers != AvnInputModifiersNone)
-        {
-            type = KeyDown;
-        }
-        else
-        {
-            type = KeyUp;
-        }
-    }
-    
     bool handled = event.window.firstResponder == self && [self keyboardEvent: event withType: type];
     if (!handled)
     {
         handled = self.parent->BaseEvents->MonitorKeyEvent(type, timestamp, modifiers, key);
+    }
+    
+    if (!handled)
+    {
+        handled = [super performKeyEquivalent: event];
     }
     
     return handled;
