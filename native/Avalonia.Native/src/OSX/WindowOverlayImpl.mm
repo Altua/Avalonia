@@ -419,6 +419,10 @@ HRESULT WindowOverlayImpl::PickColor(AvnColor color, bool* cancel, AvnColor* ret
 
 @implementation AvnView (OverlayWindowExtension)
 
+
+// This executes before keydown events but after the monitor.
+// So this is a nice (only?) way to let PowerPoint handle the keyboard shortcuts if Avalonia or Grunt doesn't handle them at runtime.
+// Event monitor is still required for handling certain key combinations, which PowerPoint blocks from reaching here.
 - (BOOL)performKeyEquivalent:(NSEvent *)event
 {
     WindowImpl* parent = self.parent;
