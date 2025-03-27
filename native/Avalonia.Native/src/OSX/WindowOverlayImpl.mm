@@ -422,7 +422,7 @@ HRESULT WindowOverlayImpl::PickColor(AvnColor color, bool* cancel, AvnColor* ret
 - (BOOL)performKeyEquivalent:(NSEvent *)event
 {
     WindowImpl* parent = self.parent;
-    if (parent == nullptr || !parent->IsOverlay()){
+    if (parent == nullptr){
         return [super performKeyEquivalent: event];
     }
     
@@ -432,7 +432,7 @@ HRESULT WindowOverlayImpl::PickColor(AvnColor color, bool* cancel, AvnColor* ret
     AvnRawKeyEventType type = event.type == NSEventTypeKeyDown ? KeyDown : KeyUp;
 
     bool handled = event.window.firstResponder == self && [self keyboardEvent: event withType: type];
-    if (!handled)
+    if (!handled && parent->IsOverlay())
     {
         handled = parent->BaseEvents->MonitorKeyEvent(type, timestamp, modifiers, key);
     }
