@@ -27,6 +27,11 @@
     NSMutableArray* _accessibilityChildren;
 }
 
+-(WindowImpl *)parent
+{
+    return _parent.tryGetWithCast<WindowImpl>();
+}
+
 - (void)onClosed
 {
     @synchronized (self)
@@ -345,6 +350,7 @@
     return YES;
 }
 
+
 - (void)mouseMoved:(NSEvent *)event
 {
     [self mouseEvent:event withType:Move];
@@ -485,12 +491,12 @@
     [super mouseExited:event];
 }
 
-- (void) keyboardEvent: (NSEvent *) event withType: (AvnRawKeyEventType)type
+- (bool) keyboardEvent: (NSEvent *) event withType: (AvnRawKeyEventType)type
 {
     auto parent = _parent.tryGet();
     if([self ignoreUserInput: false] || parent == nullptr)
     {
-        return;
+        return false;
     }
 
     auto scanCode = [event keyCode];
@@ -502,7 +508,7 @@
     auto timestamp = static_cast<uint64_t>([event timestamp] * 1000);
     auto modifiers = [self getModifiers:[event modifierFlags]];
 
-    parent->TopLevelEvents->RawKeyEvent(type, timestamp, modifiers, key, physicalKey, keySymbolUtf8);
+    return parent->TopLevelEvents->RawKeyEvent(type, timestamp, modifiers, key, physicalKey, keySymbolUtf8);
 }
 
 - (void)setModifiers:(NSEventModifierFlags)modifierFlags

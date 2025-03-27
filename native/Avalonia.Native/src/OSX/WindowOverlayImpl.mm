@@ -18,21 +18,12 @@ WindowOverlayImpl::WindowOverlayImpl(void* parentWindow, char* parentView, IAvnW
     this->parentView = FindNSView(this->parentWindow, [NSString stringWithUTF8String:parentView]);
     this->canvasView = FindNSView(this->parentWindow, @"PPTClipView");
 
-    // Add a list to store the special key codes that need to be sent to the AvnView
-    static const std::unordered_set<unsigned short> specialKeyCodes = {
-        0,   // Cmd+a (Select All)
-        6,   // Cmd+z (Undo)
-        16,  // Cmd+y (Redo)
-        9,   // Cmd+v (Paste)
-        11,  // Cmd+b (Bold)
-        34,  // Cmd+I (Italic)
-        32   // Cmd+U (Underline)
-    };
-
     // We should ideally choose our parentview to be positioned exactly on top of the main window
     // This is needed to replicate default avalonia behaviour
     // If parentview is positioned differently, we shall adjust the origin and size accordingly (bottom left coordinates)
     [this->parentView addSubview:View];
+    [this->parentWindow setInitialFirstResponder: View];
+    [View setNextResponder: this->parentView];
     
     NSRect frame = this->parentView.frame;
     frame.size.height += frame.origin.y;
@@ -122,90 +113,48 @@ WindowOverlayImpl::WindowOverlayImpl(void* parentWindow, char* parentView, IAvnW
             this->BaseEvents->OnSlideMouseActivate(point);
         }
 
-                return event;
+        return event;
     }];
     
+    // Special key codes that need explicit sending to AvnView
+    static const std::unordered_set<unsigned short> specialKeyCodes = {
+        11,  // Cmd+b (Bold)
+        34,  // Cmd+I (Italic)
+        32   // Cmd+U (Underline)
+    };
+
     id keydownMonitor = [NSEvent addLocalMonitorForEventsMatchingMask:NSEventMaskKeyDown | NSEventMaskKeyUp | NSEventMaskFlagsChanged handler:^NSEvent * (NSEvent * event) {
-        bool handled = false;
         NSUInteger flags = [event modifierFlags] & NSEventModifierFlagDeviceIndependentFlagsMask;
 
-        AvnInputModifiers modifiers = GetCommandModifier([event modifierFlags]); 
+        AvnInputModifiers modifiers = GetCommandModifier([event modifierFlags]);
         NSLog(@"WOI: Dispatching Key Flags =%ld, Event=%ld", flags, [event type]);
 
-        // When any modifier key alone is pressed or released, the if block shall execute hence it responds to NSEventTypeFlagsChanged
-        // This shall listens to Modifier+Key events, hence modifiers != AvnInputModifiersNone is checked
-        // This conditions is placed to avoid independent key strokes from reaching the Key event handler
+        // We are only interested in special combinations and not regular keys:
+        // - Modifier alone is pressed or released (NSEventTypeFlagsChanged)
+        // - Modifier+Key events (modifiers != AvnInputModifiersNone)
         if ((modifiers != AvnInputModifiersNone) || ([event type] == NSEventTypeFlagsChanged))
         {
             NSLog(@"WOI: Captured Key Event Flags =%ld, Event=%ld", flags, [event type]);
             if ((specialKeyCodes.find([event keyCode]) != specialKeyCodes.end()) &&
                 ([[[event window] firstResponder] isKindOfClass:[AvnView class]]))
             {
-                // Some key combinations need to be treated in a special way by our local event monitor.
-                // Manually treating this here prior to PowerPoint ensures those keys reach our handlers.
-                // This is required because PowerPoint's own handlers can prevent them from reaching us
-                // in the normal processing chain of events.
+                // The normal processing chain will call `performKeyEquivalent` for most combinations,
+                // with the exception of a few special ones. We force `sendEvent` these to our AvnView,
+                // where they will reach the regular `keyDown` / `keyUp` handlers. In the future we can
+                // consider having a singular handling point for both scenarios.
 
-                // When the first responder is an AvnView, this means the user has recently interacted
-                // with one of our views so the event is most likely intended for us. This window can be
-                // either the Powerpoint window or a standalone Avalonia window, like our data editor.
-
-                // Possible AvnView scenarios are:
+                // Possible AvnView first responder scenarios are:
                 // 1) Powerpoint window: firstResponder is our overlay after a Grunt object was selected
                 // 2) Standalone Avalonia window: firstResponder is always an AvnView
-
-                // PowerPoint's special key handlers can be observed by hitting Cmd+V inside the `About`
-                // window, which results in clipboard contents being inserted into a completely different
-                // window - the presentation window.
                 
                 NSLog(@"WOI: MONITOR Forcing keyboard event to AvnWindow");
                 [[event window] sendEvent:event];
                 return nil;
             }
-            // This code is adapted from AvnView
-            // - (void) keyboardEvent: (NSEvent *) event withType: (AvnRawKeyEventType)type
-
-            auto scanCode = [event keyCode];
-            auto key = VirtualKeyFromScanCode(scanCode, [event modifierFlags]);
-            
-            uint64_t timestamp = static_cast<uint64_t>([event timestamp] * 1000);
-            AvnRawKeyEventType type;
-
-            // Type flag change with the set modifier is a key down. 
-            // Same with the unset modifier is a key up. [When the modifier key is released, the flag changes to 0x0]
-            // This is handled in the else block
-            if ([event type] == NSEventTypeKeyDown)
-            {
-                type = KeyDown;
-            }
-            else if ([event type] == NSEventTypeKeyUp)
-            {
-                type = KeyUp;
-            }
-            else 
-            {
-                if (modifiers != AvnInputModifiersNone)
-                {
-                    type = KeyDown;
-                }
-                else 
-                {
-                    type = KeyUp;
-                }
-            }
-
-            handled = this->BaseEvents->MonitorKeyEvent(type, timestamp, modifiers, key);
         }
 
-        if (handled)
-        {
-            NSLog(@"WOI: Monitor handled key=%hu", [event keyCode]);
-            return nil;
-        }
-        else {
-            NSLog(@"WOI: Monitor not handled key=%hu", [event keyCode]);
-            return event;
-        }
+        NSLog(@"WOI: Monitor not handled key=%hu", [event keyCode]);
+        return event;
     }];
     
     eventMonitors = [NSArray arrayWithObjects: mouseMovedMonitor, leftMouseDownMonitor, keydownMonitor, nil];
@@ -448,3 +397,47 @@ HRESULT WindowOverlayImpl::PickColor(AvnColor color, bool* cancel, AvnColor* ret
 
     return S_OK;
 }
+
+
+#pragma mark-
+// Additional AvnView methods
+
+@interface AvnView ()
+
+- (bool) keyboardEvent: (NSEvent *) event withType: (AvnRawKeyEventType)type;
+
+@end
+
+@implementation AvnView (OverlayWindowExtension)
+
+
+// This executes before keydown events but after the monitor.
+// So this is a nice (only?) way to let PowerPoint handle the keyboard shortcuts if Avalonia or Grunt doesn't handle them at runtime.
+// Event monitor is still required for handling certain key combinations, which PowerPoint blocks from reaching here.
+- (BOOL)performKeyEquivalent:(NSEvent *)event
+{
+    WindowImpl* parent = self.parent;
+    if (parent == nullptr){
+        return [super performKeyEquivalent: event];
+    }
+    
+    auto modifiers = WindowOverlayImpl::GetCommandModifier(event.modifierFlags);
+    auto key = VirtualKeyFromScanCode(event.keyCode, event.modifierFlags);
+    auto timestamp = static_cast<uint64_t>(event.timestamp * 1000);
+    AvnRawKeyEventType type = event.type == NSEventTypeKeyDown ? KeyDown : KeyUp;
+
+    bool handled = event.window.firstResponder == self && [self keyboardEvent: event withType: type];
+    if (!handled && parent->IsOverlay())
+    {
+        handled = parent->BaseEvents->MonitorKeyEvent(type, timestamp, modifiers, key);
+    }
+    
+    if (!handled)
+    {
+        handled = [super performKeyEquivalent: event];
+    }
+    
+    return handled;
+}
+
+@end

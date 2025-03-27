@@ -27,4 +27,7 @@
 -(void) setResizeReason:(AvnPlatformResizeReason)reason;
 -(void) setRenderTarget:(NSObject<IRenderTarget>* _Nonnull)target;
 -(void) raiseAccessibilityChildrenChanged;
+
+@property (readonly, assign) WindowImpl* parent;
+
 @end
