@@ -1,4 +1,5 @@
 using System;
+using Avalonia.Rendering.Composition;
 using Avalonia.VisualTree;
 
 namespace Avalonia
@@ -124,14 +125,22 @@ namespace Avalonia
                     result *= Matrix.CreateTranslation(topLeft);
                 }
 
-                v = v.VisualParent;
+                if (v.CompositionVisual?.AdornedVisual is CompositionDrawListVisual compositionVisual
+                    && compositionVisual.Visual is not null
+                    && !ancestor.IsVisualAncestorOf(v))
+                {
+                    v = compositionVisual.Visual;
+                }
+                else
+                {
+                    v = v.VisualParent;
+                }
 
                 if (v == null)
                 {
                     throw new ArgumentException("'visual' is not a descendant of 'ancestor'.");
                 }
             }
-
             return result;
         }
     }
