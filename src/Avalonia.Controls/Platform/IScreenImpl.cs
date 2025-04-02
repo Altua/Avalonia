@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
+using System.Linq;
 using System.Threading.Tasks;
 using Avalonia.Metadata;
 using Avalonia.Threading;
@@ -49,7 +50,7 @@ namespace Avalonia.Platform
 
         protected ScreensBase() : this(null)
         {
-            
+
         }
 
         public int ScreenCount => _screenCount ??= GetScreenCount();
@@ -100,14 +101,14 @@ namespace Avalonia.Platform
             return _screenDetailsRequestGranted.Value;
         }
 
-        protected bool TryGetScreen(TKey key,  [MaybeNullWhen(false)] out TScreen screen)
+        protected bool TryGetScreen(TKey key, [MaybeNullWhen(false)] out TScreen screen)
         {
             EnsureScreens();
             return _allScreensByKey.TryGetValue(key, out screen);
         }
 
         protected virtual void ScreenAdded(TScreen screen) => ScreenChanged(screen);
-        protected virtual void ScreenChanged(TScreen screen) {}
+        protected virtual void ScreenChanged(TScreen screen) { }
         protected virtual void ScreenRemoved(TScreen screen) => screen.OnRemoved();
         protected virtual int GetScreenCount() => AllScreens.Count;
         protected abstract IReadOnlyList<TKey> GetAllScreenKeys();
@@ -137,21 +138,17 @@ namespace Avalonia.Platform
             var screens = GetAllScreenKeys();
             var screensSet = new HashSet<TKey>(screens, screenKeyComparer);
 
-            _allScreens = new TScreen[screens.Count];
+            var screensToRemove = _allScreensByKey
+                .Where(x => !screensSet.Contains(x.Key));
 
-            foreach (var oldScreenKey in _allScreensByKey.Keys)
+            foreach (var screenTuple in screensToRemove)
             {
-                if (!screensSet.Contains(oldScreenKey))
-                {
-                    if (_allScreensByKey.TryGetValue(oldScreenKey, out var screen)
-                        && _allScreensByKey.Remove(oldScreenKey))
-                    {
-                        ScreenRemoved(screen);
-                    }
-                }
+                _allScreensByKey.Remove(screenTuple.Key);
+                ScreenRemoved(screenTuple.Value);
             }
 
             int i = 0;
+            _allScreens = new TScreen[screens.Count];
             foreach (var newScreenKey in screens)
             {
                 if (_allScreensByKey.TryGetValue(newScreenKey, out var oldScreen))
