@@ -125,7 +125,9 @@ namespace Avalonia
                     result *= Matrix.CreateTranslation(topLeft);
                 }
 
-                if (v.CompositionVisual?.AdornedVisual is CompositionDrawListVisual compositionVisual)
+                if (v.CompositionVisual?.AdornedVisual is CompositionDrawListVisual compositionVisual
+                    && compositionVisual.Visual is not null
+                    && !ancestor.IsVisualAncestorOf(v))
                 {
                     v = compositionVisual.Visual;
                 }
@@ -139,7 +141,6 @@ namespace Avalonia
                     throw new ArgumentException("'visual' is not a descendant of 'ancestor'.");
                 }
             }
-
             return result;
         }
     }
