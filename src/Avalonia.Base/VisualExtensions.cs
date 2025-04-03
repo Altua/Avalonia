@@ -127,7 +127,7 @@ namespace Avalonia
 
                 if (v.CompositionVisual?.AdornedVisual is CompositionDrawListVisual compositionVisual
                     && compositionVisual.Visual is not null
-                    && !ancestor.IsVisualAncestorOf(v))
+                    && ancestor.IsVisualAncestorOf(compositionVisual.Visual))
                 {
                     v = compositionVisual.Visual;
                 }
