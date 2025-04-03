@@ -139,7 +139,8 @@ namespace Avalonia.Platform
             var screensSet = new HashSet<TKey>(screens, screenKeyComparer);
 
             var screensToRemove = _allScreensByKey
-                .Where(x => !screensSet.Contains(x.Key));
+                .Where(x => !screensSet.Contains(x.Key))
+                .ToArray();
 
             foreach (var screenTuple in screensToRemove)
             {
