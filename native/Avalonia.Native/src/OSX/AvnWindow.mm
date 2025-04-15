@@ -261,10 +261,15 @@
     return false;
 }
 
-#if !defined(IS_NSPANEL) && !defined(GRUNT)
+#ifndef IS_NSPANEL
 -(BOOL)canBecomeMainWindow
 {
+#ifdef GRUNT
+    // In case of Grunt PowerPoint is the main window
+    return false;
+#else
     return true;
+#endif
 }
 #endif
 
