@@ -27,6 +27,8 @@
 #include "AvnAutomationNode.h"
 #include "AvnString.h"
 
+#define GRUNT
+
 @implementation CLASS_NAME
 {
     ComObjectWeakPtr<WindowBaseImpl> _parent;
@@ -259,7 +261,7 @@
     return false;
 }
 
-#ifndef IS_NSPANEL
+#if !defined(IS_NSPANEL) && !defined(GRUNT)
 -(BOOL)canBecomeMainWindow
 {
     return true;
@@ -461,6 +463,20 @@
         view = parent;
     }
 }
+
+#ifdef GRUNT
+- (void)keyDown:(NSEvent *)event
+{
+    // Pass any command or control key modifiers to PowerPoint window
+    if ((event.modifierFlags & (NSEventModifierFlagCommand | NSEventModifierFlagControl)) != 0 )
+    {
+        if (self != NSApp.mainWindow)
+        {
+            [NSApp.mainWindow sendEvent:event];
+        }
+    }
+}
+#endif
 
 - (void)sendEvent:(NSEvent *_Nonnull)event
 {
