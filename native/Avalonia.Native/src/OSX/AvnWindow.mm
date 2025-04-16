@@ -480,6 +480,10 @@
             [NSApp.mainWindow sendEvent:event];
         }
     }
+    else
+    {
+        [super keyDown:event];
+    }
 }
 #endif
 
