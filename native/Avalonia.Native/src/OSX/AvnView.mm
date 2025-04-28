@@ -86,7 +86,13 @@
     _area = nullptr;
     _lastPixelSize.Height = 100;
     _lastPixelSize.Width = 100;
+    
+#ifdef GRUNT
+    // in case of GRUNT let PowerPoint handle the "public.data"
+    [self registerForDraggedTypes: @[GetAvnCustomDataType()]];
+#else
     [self registerForDraggedTypes: @[@"public.data", GetAvnCustomDataType()]];
+#endif
 
     _modifierState = AvnInputModifiersNone;
     
