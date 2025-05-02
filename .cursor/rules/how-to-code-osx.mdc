@@ -1,0 +1,17 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+This shall only apply to implementations done inside the [OSX](./native/Avalonia.Native/src/OSX/)   of the solution.
+Refer to the [index.md](mdc:native/Avalonia.Native/src/OSX/PDD/index.md) and read the files listed there to build the context on how the existing code is implemented.
+
+We are not allowed to edit the Avalonia provided files. Here are the files we are allowed to edit.
+
+[WindowOverlayImpl.h](mdc:native/Avalonia.Native/src/OSX/WindowOverlayImpl.h)
+[WindowOverlayImpl.mm](mdc:native/Avalonia.Native/src/OSX/WindowOverlayImpl.mm)
+[AvnView.h](mdc:native/Avalonia.Native/src/OSX/AvnView.h)
+[AvnView.mm](mdc:native/Avalonia.Native/src/OSX/AvnView.mm)
+
+Any implementation we do, we have to limit the code insertions to these files only.
+
