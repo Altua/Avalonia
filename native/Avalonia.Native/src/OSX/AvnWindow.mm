@@ -27,8 +27,6 @@
 #include "AvnAutomationNode.h"
 #include "AvnString.h"
 
-#define GRUNT
-
 @implementation CLASS_NAME
 {
     ComObjectWeakPtr<WindowBaseImpl> _parent;
@@ -264,12 +262,18 @@
 #ifndef IS_NSPANEL
 -(BOOL)canBecomeMainWindow
 {
-#ifdef GRUNT
+    auto parent = _parent.tryGetWithCast<WindowBaseImpl>();
+    auto parentWindow = parent != nullptr? parent->Parent : nullptr;
+
     // In case of Grunt PowerPoint is the main window
-    return false;
-#else
-    return true;
-#endif
+    if (parentWindow != nullptr && parentWindow->IsOverlay())
+    {
+        return false;
+    }
+    else
+    {
+        return true;
+    }
 }
 #endif
 
@@ -469,9 +473,15 @@
     }
 }
 
-#ifdef GRUNT
 - (void)keyDown:(NSEvent *)event
 {
+    auto parent = _parent.tryGetWithCast<WindowBaseImpl>();
+    auto parentWindow = parent != nullptr? parent->Parent : nullptr;
+    if (parentWindow == nullptr || !parentWindow->IsOverlay())
+    {
+        [super keyDown:event];
+    }
+    
     // Pass any command or control key modifiers to PowerPoint window
     if ((event.modifierFlags & (NSEventModifierFlagCommand | NSEventModifierFlagControl)) != 0 )
     {
@@ -485,7 +495,6 @@
         [super keyDown:event];
     }
 }
-#endif
 
 - (void)sendEvent:(NSEvent *_Nonnull)event
 {
