@@ -12,6 +12,14 @@ We are not allowed to edit the Avalonia provided files. Here are the files we ar
 [WindowOverlayImpl.mm](mdc:native/Avalonia.Native/src/OSX/WindowOverlayImpl.mm)
 [AvnView.h](mdc:native/Avalonia.Native/src/OSX/AvnView.h)
 [AvnView.mm](mdc:native/Avalonia.Native/src/OSX/AvnView.mm)
+[avn.idl](mdc:src/Avalonia.Native/avn.idl)
+[WindowBaseImpl.h](mdc:native/Avalonia.Native/src/OSX/WindowBaseImpl.h)
+[WindowBaseImpl.mm](mdc:native/Avalonia.Native/src/OSX/WindowBaseImpl.mm)
 
 Any implementation we do, we have to limit the code insertions to these files only.
+
+The build script is [build.sh](mdc:build.sh) and it needs to be executed as sudo with the parameter CompileNative. Once a change is done, makesure that the build is successful.
+If not read the build errors and try to fix them automatically.
+
+
 
