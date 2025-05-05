@@ -480,6 +480,7 @@
     if (parentWindow == nullptr || !parentWindow->IsOverlay())
     {
         [super keyDown:event];
+        return;
     }
     
     // Pass any command or control key modifiers to PowerPoint window
