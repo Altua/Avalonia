@@ -86,6 +86,7 @@
     _area = nullptr;
     _lastPixelSize.Height = 100;
     _lastPixelSize.Width = 100;
+
     [self registerForDraggedTypes: @[@"public.data", GetAvnCustomDataType()]];
 
     _modifierState = AvnInputModifiersNone;
@@ -95,6 +96,17 @@
     _selectedRange = NSMakeRange(0, 0);
     
     return self;
+}
+
+-(void)viewDidMoveToSuperview
+{
+    auto parent = _parent.tryGet();
+    if (parent != nullptr && parent->IsOverlay())
+    {
+        // in case of GRUNT let PowerPoint handle the "public.data"
+        [self unregisterDraggedTypes];
+        [self registerForDraggedTypes: @[GetAvnCustomDataType()]];
+    }
 }
 
 - (BOOL)isFlipped
