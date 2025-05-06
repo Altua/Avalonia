@@ -3,6 +3,7 @@
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using Avalonia.Collections.Pooled;
 using Avalonia.Platform.Storage;
 using Avalonia.Platform.Storage.FileIO;
 
@@ -29,6 +30,60 @@ internal sealed class StorageProviderImpl(TopLevelImpl topLevel, StorageProvider
     public Task<IReadOnlyList<IStorageFolder>> OpenFolderPickerAsync(FolderPickerOpenOptions options)
     {
         return native.SelectFolderDialog(topLevel, options);
+    }
+
+    public Task<IStorageBookmarkFile?> OpenFileBookmarkAsync(string bookmark)
+    {
+        return Task.FromResult(native.TryGetStorageItem(native.ReadBookmark(bookmark, false)) as IStorageBookmarkFile);
+    }
+
+    public Task<IStorageBookmarkFolder?> OpenFolderBookmarkAsync(string bookmark)
+    {
+        return Task.FromResult(native.TryGetStorageItem(native.ReadBookmark(bookmark, true)) as IStorageBookmarkFolder);
+    }
+
+    public Task<IStorageFile?> TryGetFileFromPathAsync(Uri fileUri)
+    {
+        return Task.FromResult(native.TryGetStorageItem(fileUri) as IStorageFile);
+    }
+
+    public Task<IStorageFolder?> TryGetFolderFromPathAsync(Uri folderPath)
+    {
+        return Task.FromResult(native.TryGetStorageItem(folderPath) as IStorageFolder);
+    }
+
+    public Task<IStorageFolder?> TryGetWellKnownFolderAsync(WellKnownFolder wellKnownFolder)
+    {
+        if (BclStorageProvider.TryGetWellKnownFolderCore(wellKnownFolder) is { } directoryInfo)
+        {
+            return Task.FromResult<IStorageFolder?>(new BclStorageFolder(directoryInfo));
+        }
+
+        return Task.FromResult<IStorageFolder?>(null);
+    }
+}
+
+internal sealed class StorageProviderNoWindowImpl(StorageProviderApi native) : IStorageProvider
+{
+    public bool CanOpen => false;
+
+    public bool CanSave => false;
+
+    public bool CanPickFolder => false;
+
+    public Task<IReadOnlyList<IStorageFile>> OpenFilePickerAsync(FilePickerOpenOptions options)
+    {
+        throw new NotImplementedException();
+    }
+
+    public Task<IStorageFile?> SaveFilePickerAsync(FilePickerSaveOptions options)
+    {
+        throw new NotImplementedException();
+    }
+
+    public Task<IReadOnlyList<IStorageFolder>> OpenFolderPickerAsync(FolderPickerOpenOptions options)
+    {
+        throw new NotImplementedException();
     }
 
     public Task<IStorageBookmarkFile?> OpenFileBookmarkAsync(string bookmark)

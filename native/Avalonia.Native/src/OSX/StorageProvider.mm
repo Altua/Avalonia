@@ -116,6 +116,7 @@ public:
             
             if (fileUri)
             {
+                [fileUri startAccessingSecurityScopedResource];
                 *ppv = CreateAvnString([fileUri absoluteString]);
             }
             return S_OK;
@@ -125,9 +126,13 @@ public:
     virtual void ReleaseBookmark (
         IAvnString* fileUriStr
     ) override {
-        // no-op
+        @autoreleasepool
+        {
+            auto fileUri = [NSURL URLWithString: GetNSStringAndRelease(fileUriStr)];
+            [fileUri stopAccessingSecurityScopedResource];
+        }
     }
-
+    
     virtual bool OpenSecurityScope (
         IAvnString* fileUriStr
     ) override {

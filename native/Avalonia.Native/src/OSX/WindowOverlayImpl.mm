@@ -31,6 +31,9 @@ WindowOverlayImpl::WindowOverlayImpl(void* parentWindow, char* parentView, IAvnW
 
     [View setFrame:frame];
     lastSize = frame.size;
+    
+    // View must resize along with the parent.
+    View.autoresizingMask = NSViewWidthSizable | NSViewHeightSizable;
 
     InitializeColorPicker();
 

@@ -16,7 +16,7 @@ using MicroCom.Runtime;
 
 namespace Avalonia.Native;
 
-internal class StorageProviderApi(IAvnStorageProvider native, bool sandboxEnabled) : IStorageProviderFactory, IDisposable
+internal class StorageProviderApi(IAvnStorageProvider native, bool sandboxEnabled) : IStorageProviderFactory, IStorageProviderFactory2, IDisposable
 {
     private readonly Dictionary<string, int> _openScopes = new();
     private readonly IAvnStorageProvider _native = native;
@@ -24,6 +24,11 @@ internal class StorageProviderApi(IAvnStorageProvider native, bool sandboxEnable
     public IStorageProvider CreateProvider(TopLevel topLevel)
     {
         return new StorageProviderImpl((TopLevelImpl)topLevel.PlatformImpl!, this);
+    }
+
+    public IStorageProvider CreateProvider()
+    {
+        return new StorageProviderNoWindowImpl(this);
     }
 
     public IStorageItem? TryGetStorageItem(Uri? itemUri, bool create = false)

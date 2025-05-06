@@ -10,4 +10,11 @@ namespace Avalonia.Controls.Platform;
 public interface IStorageProviderFactory
 {
     IStorageProvider CreateProvider(TopLevel topLevel);
+
+}
+
+[Unstable]
+public interface IStorageProviderFactory2
+{
+    IStorageProvider CreateProvider();
 }
