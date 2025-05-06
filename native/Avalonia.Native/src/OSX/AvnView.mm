@@ -646,12 +646,18 @@
         auto keyDownHandled = [self handleKeyDown:timestamp withKey:key withPhysicalKey:physicalKey withModifiers:modifiers withKeySymbol:keySymbol];
             
         //Raise text input event for unhandled key down
-        if(!keyDownHandled){
+        if(!keyDownHandled && (event.modifierFlags & (NSEventModifierFlagCommand | NSEventModifierFlagControl)) == 0){
             if(keySymbol != nullptr && key != AvnKeyEnter){
                 auto timestamp = static_cast<uint64_t>([event timestamp] * 1000);
                 
-                parent->TopLevelEvents->RawTextInputEvent(timestamp, [keySymbol UTF8String]);
+                keyDownHandled = parent->TopLevelEvents->RawTextInputEvent(timestamp, [keySymbol UTF8String]);
             }
+        }
+        
+        // Let super class handle any unhandled commands
+        if (!keyDownHandled)
+        {
+            [super keyDown:event];
         }
     }
     
