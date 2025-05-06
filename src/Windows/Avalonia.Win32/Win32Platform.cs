@@ -19,6 +19,7 @@ using Avalonia.Win32.Input;
 using Avalonia.Win32.Interop;
 using static Avalonia.Win32.Interop.UnmanagedMethods;
 using System.Collections.Generic;
+using Avalonia.Platform.Storage;
 
 namespace Avalonia
 {
@@ -133,7 +134,8 @@ namespace Avalonia.Win32
                 .Bind<IPlatformIconLoader>().ToConstant(s_instance)
                 .Bind<NonPumpingLockHelper.IHelperImpl>().ToConstant(NonPumpingWaitHelperImpl.Instance)
                 .Bind<IMountedVolumeInfoProvider>().ToConstant(new WindowsMountedVolumeInfoProvider())
-                .Bind<IPlatformLifetimeEventsImpl>().ToConstant(s_instance);
+                .Bind<IPlatformLifetimeEventsImpl>().ToConstant(s_instance)
+                .Bind<IStorageProviderFactory2>().ToSingleton<Win32StorageProviderFactory>();
 
             IPlatformGraphics? platformGraphics;
             if (options.CustomPlatformGraphics is not null)
@@ -345,6 +347,14 @@ namespace Avalonia.Win32
                 SetProcessDPIAware();
 
             return false;
+        }
+
+        private class Win32StorageProviderFactory : IStorageProviderFactory2
+        {
+            public IStorageProvider CreateProvider()
+            {
+                return new NoopStorageProvider();
+            }
         }
     }
 }
