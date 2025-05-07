@@ -25,7 +25,9 @@ private:
     PopupImpl(IAvnWindowEvents* events) : TopLevelImpl(events), WindowBaseImpl(events)
     {
         WindowEvents = events;
-        [Window setLevel:NSPopUpMenuWindowLevel];
+
+        // Don't display our popups on top of other applications
+        [Window setLevel:NSNormalWindowLevel];
     }
 protected:
     virtual NSWindowStyleMask CalculateStyleMask() override
@@ -47,6 +49,10 @@ public:
     {
         // Don't steal the focus from another windows if our parent is inactive
         if (Parent != nullptr && Parent->Window != nullptr && ![Parent->Window isKeyWindow])
+            return false;
+
+        // Don't steal focus when user hovers mouse over powerpoint while another application is focused
+        if (Parent->IsOverlay())
             return false;
 
         return WindowBaseImpl::ShouldTakeFocusOnShow();
