@@ -48,6 +48,10 @@ public:
         // Don't steal the focus from another windows if our parent is inactive
         if (Parent != nullptr && Parent->Window != nullptr && ![Parent->Window isKeyWindow])
             return false;
+        
+        // Don't steal focus when user hovers mouse over powerpoint while another application is focused
+        if (Parent->IsOverlay())
+            return false;
 
         return WindowBaseImpl::ShouldTakeFocusOnShow();
     }
