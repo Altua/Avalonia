@@ -25,15 +25,12 @@
 
 -(void)observeValueForKeyPath:(NSString *)keyPath ofObject:(id)object change:(NSDictionary<NSKeyValueChangeKey,id> *)change context:(void *)context
 {
-    if ([keyPath isEqualToString:@"firstResponder"] && [object isKindOfClass:[NSWindow class]])
+    WindowImpl* parent = _view.parent;
+    if(parent != nullptr)
     {
-        WindowImpl* parent = _view.parent;
-        if(parent != nullptr)
-        {
-            id firstResponder = [change valueForKey:NSKeyValueChangeNewKey];
-            NSString* firstResponderName = NSStringFromClass([firstResponder class]);
-            parent->WindowEvents->LogFirstResponder([firstResponderName UTF8String]);
-        }
+        id firstResponder = [change valueForKey:NSKeyValueChangeNewKey];
+        NSString* firstResponderName = NSStringFromClass([firstResponder class]);
+        parent->WindowEvents->LogFirstResponder([firstResponderName UTF8String]);
     }
 }
 
