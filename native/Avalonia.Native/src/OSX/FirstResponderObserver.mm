@@ -31,10 +31,8 @@
         if(parent != nullptr)
         {
             id firstResponder = [change valueForKey:NSKeyValueChangeNewKey];
-            dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
-                NSString* firstResponderName = NSStringFromClass([firstResponder class]);
-                parent->WindowEvents->LogFirstResponder([firstResponderName UTF8String]);
-            });
+            NSString* firstResponderName = NSStringFromClass([firstResponder class]);
+            parent->WindowEvents->LogFirstResponder([firstResponderName UTF8String]);
         }
     }
 }
