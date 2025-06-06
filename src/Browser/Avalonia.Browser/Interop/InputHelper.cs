@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Runtime.InteropServices;
 using System.Runtime.InteropServices.JavaScript;
 using System.Threading.Tasks;
@@ -112,6 +113,14 @@ internal static partial class InputHelper
 
     [JSImport("InputHelper.writeClipboardText", AvaloniaModule.MainModuleName)]
     public static partial Task WriteClipboardTextAsync(JSObject globalThis, string text);
+
+    [JSImport("InputHelper.writeClipboard", AvaloniaModule.MainModuleName)]
+    public static partial Task WriteClipboardAsync(JSObject globalThis,
+        [JSMarshalAs<JSType.Object>] Dictionary<string, string> data);
+
+    [JSImport("InputHelper.readClipboard", AvaloniaModule.MainModuleName)]
+    [return: JSMarshalAs<JSType.Object>]
+    public static partial Task<Dictionary<string, string>> ReadClipboardAsync(JSObject globalThis);
 
     [JSImport("InputHelper.setPointerCapture", AvaloniaModule.MainModuleName)]
     public static partial void

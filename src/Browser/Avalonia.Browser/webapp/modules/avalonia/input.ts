@@ -77,6 +77,26 @@ export class InputHelper {
         return await globalThis.navigator.clipboard.writeText(text);
     }
 
+    public static async writeClipboard(globalThis: Window, data: any): Promise<void> {
+        const obj: any = {};
+        for (const k in data) {
+            obj[k] = new Blob([data[k]], { type: "text/plain" });
+        }
+        await globalThis.navigator.clipboard.write([new ClipboardItem(obj)]);
+    }
+
+    public static async readClipboard(globalThis: Window): Promise<any> {
+        const result: any = {};
+        const items = await globalThis.navigator.clipboard.read();
+        for (const item of items) {
+            for (const t of item.types) {
+                const blob = await item.getType(t);
+                result[t] = await blob.text();
+            }
+        }
+        return result;
+    }
+
     public static subscribeInputEvents(element: HTMLInputElement, topLevelId: number) {
         const keySub = this.subscribeKeyEvents(element, topLevelId);
         const pointerSub = this.subscribePointerEvents(element, topLevelId);
