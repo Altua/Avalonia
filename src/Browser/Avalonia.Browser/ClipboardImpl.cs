@@ -23,7 +23,7 @@ namespace Avalonia.Browser
 
         public async Task SetDataObjectAsync(IDataObject data)
         {
-            var dict = new Dictionary<string, string>();
+            var list = new List<string>();
 
             foreach (var format in data.GetDataFormats())
             {
@@ -31,26 +31,30 @@ namespace Avalonia.Browser
                 {
                     if (format == DataFormats.Text)
                     {
-                        dict["text/plain"] = str;
+                        list.Add("text/plain");
+                        list.Add(str);
                     }
 
-                    dict[$"web {format}"] = str;
+                    list.Add($"web {format}");
+                    list.Add(str);
                 }
             }
 
-            if (dict.Count > 0)
+            if (list.Count > 0)
             {
-                await InputHelper.WriteClipboardAsync(BrowserWindowingPlatform.GlobalThis, dict);
+                await InputHelper.WriteClipboardAsync(BrowserWindowingPlatform.GlobalThis, list.ToArray());
             }
         }
 
         public async Task<string[]> GetFormatsAsync()
         {
-            var data = await InputHelper.ReadClipboardAsync(BrowserWindowingPlatform.GlobalThis);
+            var pairs = await InputHelper.ReadClipboardAsync(BrowserWindowingPlatform.GlobalThis);
             var res = new List<string>();
 
-            foreach (var key in data.Keys)
+            for (var i = 0; i + 1 < pairs.Length; i += 2)
             {
+                var key = pairs[i];
+
                 if (key == "text/plain")
                 {
                     res.Add(DataFormats.Text);
@@ -66,16 +70,22 @@ namespace Avalonia.Browser
 
         public async Task<object?> GetDataAsync(string format)
         {
-            var data = await InputHelper.ReadClipboardAsync(BrowserWindowingPlatform.GlobalThis);
+            var pairs = await InputHelper.ReadClipboardAsync(BrowserWindowingPlatform.GlobalThis);
 
-            if (format == DataFormats.Text && data.TryGetValue("text/plain", out var text))
+            for (var i = 0; i + 1 < pairs.Length; i += 2)
             {
-                return text;
-            }
+                var key = pairs[i];
+                var value = pairs[i + 1];
 
-            if (data.TryGetValue($"web {format}", out var value))
-            {
-                return value;
+                if (format == DataFormats.Text && key == "text/plain")
+                {
+                    return value;
+                }
+
+                if (key == $"web {format}")
+                {
+                    return value;
+                }
             }
 
             return null;
