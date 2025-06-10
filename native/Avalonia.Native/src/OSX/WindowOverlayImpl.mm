@@ -1,4 +1,5 @@
 #include <unordered_set>
+#import "FirstResponderObserver.h"
 #include "WindowOverlayImpl.h"
 #include "WindowInterfaces.h"
 
@@ -24,6 +25,8 @@ WindowOverlayImpl::WindowOverlayImpl(void* parentWindow, char* parentView, IAvnW
     [this->parentView addSubview:View];
     [this->parentWindow setInitialFirstResponder: View];
     [View setNextResponder: this->parentView];
+     
+    firstResponderObserver = [[FirstResponderObserver alloc] initWithView: View];
     
     NSRect frame = this->parentView.frame;
     frame.size.height += frame.origin.y;

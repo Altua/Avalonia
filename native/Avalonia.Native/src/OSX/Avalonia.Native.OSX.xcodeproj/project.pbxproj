@@ -60,6 +60,8 @@
 		BC11A5BE2608D58F0017BAD0 /* automation.h in Headers */ = {isa = PBXBuildFile; fileRef = BC11A5BC2608D58F0017BAD0 /* automation.h */; };
 		BC11A5BF2608D58F0017BAD0 /* automation.mm in Sources */ = {isa = PBXBuildFile; fileRef = BC11A5BD2608D58F0017BAD0 /* automation.mm */; };
 		BC7C33822C066DBF00945A48 /* AvnAutomationNode.h in Headers */ = {isa = PBXBuildFile; fileRef = BC7C33812C066DBF00945A48 /* AvnAutomationNode.h */; };
+		C7017DC72DED61F300CA0E87 /* FirstResponderObserver.h in Headers */ = {isa = PBXBuildFile; fileRef = C7017DC52DED61F300CA0E87 /* FirstResponderObserver.h */; };
+		C7017DC82DED61F300CA0E87 /* FirstResponderObserver.mm in Sources */ = {isa = PBXBuildFile; fileRef = C7017DC62DED61F300CA0E87 /* FirstResponderObserver.mm */; };
 		ED3791C42862E1F40080BD62 /* UniformTypeIdentifiers.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = ED3791C32862E1F40080BD62 /* UniformTypeIdentifiers.framework */; };
 		ED754D262A97306B0078B4DF /* PlatformRenderTimer.mm in Sources */ = {isa = PBXBuildFile; fileRef = ED754D252A97306B0078B4DF /* PlatformRenderTimer.mm */; };
 		EDF8CDCD2964CB01001EE34F /* PlatformSettings.mm in Sources */ = {isa = PBXBuildFile; fileRef = EDF8CDCC2964CB01001EE34F /* PlatformSettings.mm */; };
@@ -129,6 +131,8 @@
 		BC11A5BD2608D58F0017BAD0 /* automation.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = automation.mm; sourceTree = "<group>"; };
 		BC7C33812C066DBF00945A48 /* AvnAutomationNode.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = AvnAutomationNode.h; sourceTree = "<group>"; };
 		BC7C33832C066F1100945A48 /* AvnAccessibility.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = AvnAccessibility.h; sourceTree = "<group>"; };
+		C7017DC52DED61F300CA0E87 /* FirstResponderObserver.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = FirstResponderObserver.h; sourceTree = "<group>"; };
+		C7017DC62DED61F300CA0E87 /* FirstResponderObserver.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = FirstResponderObserver.mm; sourceTree = "<group>"; };
 		ED3791C32862E1F40080BD62 /* UniformTypeIdentifiers.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = UniformTypeIdentifiers.framework; path = System/Library/Frameworks/UniformTypeIdentifiers.framework; sourceTree = SDKROOT; };
 		ED754D252A97306B0078B4DF /* PlatformRenderTimer.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = PlatformRenderTimer.mm; sourceTree = "<group>"; };
 		EDF8CDCC2964CB01001EE34F /* PlatformSettings.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = PlatformSettings.mm; sourceTree = "<group>"; };
@@ -173,6 +177,8 @@
 		AB7A61E62147C814003C5833 = {
 			isa = PBXGroup;
 			children = (
+				C7017DC52DED61F300CA0E87 /* FirstResponderObserver.h */,
+				C7017DC62DED61F300CA0E87 /* FirstResponderObserver.mm */,
 				F10084852BFF1FB40024303E /* TopLevelImpl.mm */,
 				BC7C33832C066F1100945A48 /* AvnAccessibility.h */,
 				BC7C33812C066DBF00945A48 /* AvnAutomationNode.h */,
@@ -267,6 +273,7 @@
 				18391E1381E2D5BFD60265A9 /* AutoFitContentView.h in Headers */,
 				18391F1E2411C79405A9943A /* WindowProtocol.h in Headers */,
 				183914E50CF6D2EFC1667F7C /* WindowInterfaces.h in Headers */,
+				C7017DC72DED61F300CA0E87 /* FirstResponderObserver.h in Headers */,
 				64B1ECA861163C0EFF0E502B /* noarc.h in Headers */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -336,6 +343,7 @@
 				37DDA9B0219330F8002E132B /* AvnString.mm in Sources */,
 				523484CA26EA688F00EA0C2C /* trayicon.mm in Sources */,
 				AB8F7D6B21482D7F0057DBA5 /* platformthreading.mm in Sources */,
+				C7017DC82DED61F300CA0E87 /* FirstResponderObserver.mm in Sources */,
 				1A3E5EA823E9E83B00EDE661 /* rendertarget.mm in Sources */,
 				1A3E5EAE23E9FB1300EDE661 /* cgl.mm in Sources */,
 				BC11A5BF2608D58F0017BAD0 /* automation.mm in Sources */,
