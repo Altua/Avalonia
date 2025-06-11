@@ -1,4 +1,5 @@
 #include <unordered_set>
+#import "FirstResponderObserver.h"
 #include "WindowOverlayImpl.h"
 #include "WindowInterfaces.h"
 
@@ -28,6 +29,8 @@ WindowOverlayImpl::WindowOverlayImpl(void* parentWindow, char* parentView, IAvnW
     // If AvnView was not added then PPTView would have been default firstResponder.
     // So, all unhandled events of AvnView should technically go to the PPTView, not to the parentView.
     View.nextResponder = FindNSView(this->parentWindow, @"PPTView");
+     
+    firstResponderObserver = [[FirstResponderObserver alloc] initWithView: View];
     
     NSRect frame = this->parentView.frame;
     frame.size.height += frame.origin.y;
