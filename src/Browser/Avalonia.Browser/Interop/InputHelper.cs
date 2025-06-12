@@ -118,7 +118,7 @@ internal static partial class InputHelper
         [JSMarshalAs<JSType.Array<JSType.String>>] string[] data);
 
     [JSImport("InputHelper.readClipboard", AvaloniaModule.MainModuleName)]
-    [return: JSMarshalAs<JSType.Array<JSType.String>>]
+    [return: JSMarshalAs<JSType.Promise<JSType.Array<JSType.String>>>]
     public static partial Task<string[]> ReadClipboardAsync(JSObject globalThis);
 
     [JSImport("InputHelper.setPointerCapture", AvaloniaModule.MainModuleName)]
