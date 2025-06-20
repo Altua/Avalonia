@@ -26,6 +26,13 @@ private:
     {
         WindowEvents = events;
         [Window setLevel:NSPopUpMenuWindowLevel];
+        
+        // if PP textbox is firstResponder then it will not relinquish the keyboard focus, if the popup can't become a key window.
+        NSWindow* parent = NSApp.mainWindow;
+        if ([parent isKindOfClass:NSClassFromString(@"CUIDocumentShellWindow")])
+        {
+            [GetWindowProtocol() setCanBecomeKeyWindow: true];
+        }
     }
 protected:
     virtual NSWindowStyleMask CalculateStyleMask() override
