@@ -74,47 +74,31 @@ export class InputHelper {
     }
 
     public static async writeClipboardText(globalThis: Window, text: string): Promise<void> {
+        console.log(`writeClipboardText ${text}`);
         return await globalThis.navigator.clipboard.writeText(text);
-    }
-
-    public static async writeClipboardBytes(globalThis: Window, data: string, type: string): Promise<void> {
-        const blob = new Blob([data], { type: type });
-        await globalThis.navigator.clipboard.write([new ClipboardItem({[blob.type] : blob})]);
     }
 
     public static async writeClipboard(globalThis: Window, data: string[]): Promise<void> {
         const obj: any = {};
         for (let i = 0; i < data.length; i += 2) {
             obj[data[i]] = new Blob([data[i + 1]], { type: "text/plain" });
+            console.log(`writeClipboard ${data[i]} -> ${data[i + 1]}`);
         }
         await globalThis.navigator.clipboard.write([new ClipboardItem(obj)]);
     }
 
-    public static async readClipboardBytes(globalThis: Window, type: string): Promise<string> {
+    public static async readClipboard(globalThis: Window, type: string): Promise<string> {
         const items = await globalThis.navigator.clipboard.read();
         for (const item of items) {
             for (const t of item.types) {
-                if (t == type)
-                {
+                if (t === type) {
                     const blob = await item.getType(t);
-                    return blob.text();
+                    return await blob.text();
                 }
             }
         }
 
         return "";
-    }
-
-    public static async readClipboard(globalThis: Window): Promise<string[]> {
-        const result: string[] = [];
-        const items = await globalThis.navigator.clipboard.read();
-        for (const item of items) {
-            for (const t of item.types) {
-                const blob = await item.getType(t);
-                result.push(t, await blob.text());
-            }
-        }
-        return result;
     }
 
     public static async readClipboardFormats(globalThis: Window): Promise<string> {
@@ -123,10 +107,10 @@ export class InputHelper {
         for (const item of items) {
             for (const t of item.types) {
                 result.push(t);
-            }        
+            }
         }
 
-        return result.join(',');
+        return result.join(",");
     }
 
     public static subscribeInputEvents(element: HTMLInputElement, topLevelId: number) {

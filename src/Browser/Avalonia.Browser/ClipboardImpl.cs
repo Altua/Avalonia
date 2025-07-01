@@ -10,18 +10,6 @@ namespace Avalonia.Browser
     internal class ClipboardImpl : IClipboard
     {
 
-        private async Task<byte[]> GetBytesAsync(string type)
-        {
-            string base64String = await InputHelper.ReadClipboardBytesAsync(BrowserWindowingPlatform.GlobalThis, type);
-            return System.Convert.FromBase64String(base64String);
-        }
-
-        private Task SetBytesAsync(string type, byte[] data)
-        {
-            string base64String = System.Convert.ToBase64String(data);
-            return InputHelper.WriteClipboardBytesAsync(BrowserWindowingPlatform.GlobalThis, base64String, type);
-        }
-
         public Task<string?> GetTextAsync()
         {
             return InputHelper.ReadClipboardTextAsync(BrowserWindowingPlatform.GlobalThis)!;
@@ -36,23 +24,30 @@ namespace Avalonia.Browser
 
         public async Task SetDataObjectAsync(IDataObject data)
         {
+            List<string> list = [];
             foreach (var format in data.GetDataFormats())
             {
                 var o = data.Get(format);
                 switch (o)
                 {
                     case string s when format == DataFormats.Text:
-                        await SetTextAsync(s);
+                        list.Add("text/plain");
+                        list.Add(s);
                         break;
 
                     case byte[] bytes:
-                        await SetBytesAsync($"application/{format}", bytes);
+                        // Custom formats must be prefixed with "web " and follow MIME type (e.g; web application/GruntObject)
+                        // Otherwise browser throws an exception 
+                        list.Add($"web application/{format}");
+                        list.Add(System.Convert.ToBase64String(bytes));
                         break;
 
                     default:
                         break;
                 }
             }
+
+            await InputHelper.WriteClipboardAsync(BrowserWindowingPlatform.GlobalThis, [.. list]);
         }
 
         public async Task<string[]> GetFormatsAsync()
@@ -69,9 +64,9 @@ namespace Avalonia.Browser
                     {
                         formatList.Add(DataFormats.Text);
                     }
-                    else if (format.StartsWith("application/"))
+                    else if (format.StartsWith("web application/"))
                     {
-                        formatList.Add(format[12..]);
+                        formatList.Add(format[16..]);
                     }
                 }
             }
@@ -84,7 +79,8 @@ namespace Avalonia.Browser
             if (format == DataFormats.Text)
                 return await GetTextAsync();
 
-            return await GetBytesAsync(format);
+            var base64 = await InputHelper.ReadClipboardAsync(BrowserWindowingPlatform.GlobalThis, $"web application/{format}");
+            return System.Convert.FromBase64String(base64);
         }
     }
 }
