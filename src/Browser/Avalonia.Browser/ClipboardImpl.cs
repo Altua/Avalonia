@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Reflection.Metadata;
 using System.Threading.Tasks;
 using Avalonia.Browser.Interop;
 using Avalonia.Input;
@@ -9,6 +10,15 @@ namespace Avalonia.Browser
 {
     internal class ClipboardImpl : IClipboard
     {
+
+        private const string CUSTOM_MIMETYPE_PREFIX = "web application/";
+
+        // Custom formats must be prefixed with "web " and follow MIME type (e.g; web application/GruntObject)
+        // Otherwise browser throws an exception 
+        private static string GetCustomMimeType(string format)
+        {
+            return CUSTOM_MIMETYPE_PREFIX + format.ToLower(System.Globalization.CultureInfo.CurrentCulture);
+        }
 
         public Task<string?> GetTextAsync()
         {
@@ -36,9 +46,7 @@ namespace Avalonia.Browser
                         break;
 
                     case byte[] bytes:
-                        // Custom formats must be prefixed with "web " and follow MIME type (e.g; web application/GruntObject)
-                        // Otherwise browser throws an exception 
-                        list.Add($"web application/{format}");
+                        list.Add(GetCustomMimeType(format));
                         list.Add(System.Convert.ToBase64String(bytes));
                         break;
 
@@ -64,9 +72,9 @@ namespace Avalonia.Browser
                     {
                         formatList.Add(DataFormats.Text);
                     }
-                    else if (format.StartsWith("web application/"))
+                    else if (format.StartsWith(CUSTOM_MIMETYPE_PREFIX))
                     {
-                        formatList.Add(format[16..]);
+                        formatList.Add(format[CUSTOM_MIMETYPE_PREFIX.Length ..]);
                     }
                 }
             }
@@ -79,7 +87,7 @@ namespace Avalonia.Browser
             if (format == DataFormats.Text)
                 return await GetTextAsync();
 
-            var base64 = await InputHelper.ReadClipboardAsync(BrowserWindowingPlatform.GlobalThis, $"web application/{format}");
+            var base64 = await InputHelper.ReadClipboardAsync(BrowserWindowingPlatform.GlobalThis, GetCustomMimeType(format));
             return System.Convert.FromBase64String(base64);
         }
     }

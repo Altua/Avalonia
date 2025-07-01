@@ -81,7 +81,8 @@ export class InputHelper {
     public static async writeClipboard(globalThis: Window, data: string[]): Promise<void> {
         const obj: any = {};
         for (let i = 0; i < data.length; i += 2) {
-            obj[data[i]] = new Blob([data[i + 1]], { type: "text/plain" });
+            const format = data[i];
+            obj[format] = new Blob([data[i + 1]], { type: format });
             console.log(`writeClipboard ${data[i]} -> ${data[i + 1]}`);
         }
         await globalThis.navigator.clipboard.write([new ClipboardItem(obj)]);
