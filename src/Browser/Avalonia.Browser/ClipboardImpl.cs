@@ -9,6 +9,19 @@ namespace Avalonia.Browser
 {
     internal class ClipboardImpl : IClipboard
     {
+
+        private async Task<byte[]> GetBytesAsync(string type)
+        {
+            string base64String = await InputHelper.ReadClipboardBytesAsync(BrowserWindowingPlatform.GlobalThis, type);
+            return System.Convert.FromBase64String(base64String);
+        }
+
+        private Task SetBytesAsync(string type, byte[] data)
+        {
+            string base64String = System.Convert.ToBase64String(data);
+            return InputHelper.WriteClipboardBytesAsync(BrowserWindowingPlatform.GlobalThis, base64String, type);
+        }
+
         public Task<string?> GetTextAsync()
         {
             return InputHelper.ReadClipboardTextAsync(BrowserWindowingPlatform.GlobalThis)!;
@@ -23,72 +36,55 @@ namespace Avalonia.Browser
 
         public async Task SetDataObjectAsync(IDataObject data)
         {
-            var list = new List<string>();
-
             foreach (var format in data.GetDataFormats())
             {
-                if (data.Get(format) is string str)
+                var o = data.Get(format);
+                switch (o)
                 {
-                    if (format == DataFormats.Text)
-                    {
-                        list.Add("text/plain");
-                        list.Add(str);
-                    }
+                    case string s when format == DataFormats.Text:
+                        await SetTextAsync(s);
+                        break;
 
-                    list.Add($"web {format}");
-                    list.Add(str);
+                    case byte[] bytes:
+                        await SetBytesAsync($"application/{format}", bytes);
+                        break;
+
+                    default:
+                        break;
                 }
-            }
-
-            if (list.Count > 0)
-            {
-                await InputHelper.WriteClipboardAsync(BrowserWindowingPlatform.GlobalThis, list.ToArray());
             }
         }
 
         public async Task<string[]> GetFormatsAsync()
         {
-            var pairs = await InputHelper.ReadClipboardAsync(BrowserWindowingPlatform.GlobalThis);
-            var res = new List<string>();
+            List<string> formatList = [];
 
-            for (var i = 0; i + 1 < pairs.Length; i += 2)
+            var formatsString = await InputHelper.ReadClipboardFormatsAsync(BrowserWindowingPlatform.GlobalThis);
+            var formats = formatsString.Split([',']);
+            if (formats is not null)
             {
-                var key = pairs[i];
-
-                if (key == "text/plain")
+                foreach (var format in formats)
                 {
-                    res.Add(DataFormats.Text);
-                }
-                else if (key.StartsWith("web ", StringComparison.Ordinal))
-                {
-                    res.Add(key.Substring(4));
+                    if (format == "text/plain")
+                    {
+                        formatList.Add(DataFormats.Text);
+                    }
+                    else if (format.StartsWith("application/"))
+                    {
+                        formatList.Add(format[12..]);
+                    }
                 }
             }
-
-            return res.ToArray();
+            
+            return [.. formatList];
         }
 
         public async Task<object?> GetDataAsync(string format)
         {
-            var pairs = await InputHelper.ReadClipboardAsync(BrowserWindowingPlatform.GlobalThis);
+            if (format == DataFormats.Text)
+                return await GetTextAsync();
 
-            for (var i = 0; i + 1 < pairs.Length; i += 2)
-            {
-                var key = pairs[i];
-                var value = pairs[i + 1];
-
-                if (format == DataFormats.Text && key == "text/plain")
-                {
-                    return value;
-                }
-
-                if (key == $"web {format}")
-                {
-                    return value;
-                }
-            }
-
-            return null;
+            return await GetBytesAsync(format);
         }
     }
 }
