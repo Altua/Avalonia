@@ -1,4 +1,5 @@
 #include <unordered_set>
+#import "FirstResponderObserver.h"
 #include "WindowOverlayImpl.h"
 #include "WindowInterfaces.h"
 
@@ -22,8 +23,14 @@ WindowOverlayImpl::WindowOverlayImpl(void* parentWindow, char* parentView, IAvnW
     // This is needed to replicate default avalonia behaviour
     // If parentview is positioned differently, we shall adjust the origin and size accordingly (bottom left coordinates)
     [this->parentView addSubview:View];
-    [this->parentWindow setInitialFirstResponder: View];
-    [View setNextResponder: this->parentView];
+    this->parentWindow.initialFirstResponder = View;
+    
+    // Next responder of AvnView should be the PPTView, on top of which the AvnView is placed.
+    // If AvnView was not added then PPTView would have been default firstResponder.
+    // So, all unhandled events of AvnView should technically go to the PPTView, not to the parentView.
+    View.nextResponder = FindNSView(this->parentWindow, @"PPTView");
+     
+    firstResponderObserver = [[FirstResponderObserver alloc] initWithView: View];
     
     NSRect frame = this->parentView.frame;
     frame.size.height += frame.origin.y;

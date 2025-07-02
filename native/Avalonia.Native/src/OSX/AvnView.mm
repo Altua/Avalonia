@@ -1001,26 +1001,6 @@
             result = nil;
         }
     }
-    
-    NSString* firstResponderName;
-    if (hitTestResult)
-    {
-        firstResponderName = @"AvnView";
-    }
-    else
-    {
-        NSView* nextResponder = [[self window] firstResponder];
-        while (nextResponder == self)
-        {
-            nextResponder = [nextResponder nextResponder];
-        }
-        firstResponderName = NSStringFromClass([nextResponder class]);
-    }
-
-    // Going with dispatch async on global queue in order to return control to powerpoint quickly and avoid UI hangs
-    dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
-        windowImpl->WindowEvents->LogFirstResponder([firstResponderName UTF8String]);
-    });
 
     return result;
 }
