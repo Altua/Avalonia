@@ -66,7 +66,7 @@ namespace Avalonia.Browser
 
             // formats are returned as comma separated strings to overcome an issue with JSInterop. Promise type can't contain an array 
             var formatsString = await InputHelper.ReadClipboardFormatsAsync(BrowserWindowingPlatform.GlobalThis);
-            var formats = formatsString.Split([',']);
+            var formats = formatsString.Split(',');
             if (formats is not null)
             {
                 foreach (var format in formats)
