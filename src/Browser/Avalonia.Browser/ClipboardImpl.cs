@@ -13,11 +13,12 @@ namespace Avalonia.Browser
 
         private const string CUSTOM_MIMETYPE_PREFIX = "web application/";
 
-        // Custom formats must be prefixed with "web " and follow MIME type (e.g; web application/GruntObject)
+        // Custom formats must be prefixed with "web " and follow MIME type format and format should be in lowercase. 
+        // e.g; web application/gruntobject
         // Otherwise browser throws an exception 
         private static string GetCustomMimeType(string format)
         {
-            return CUSTOM_MIMETYPE_PREFIX + format.ToLower(System.Globalization.CultureInfo.CurrentCulture);
+            return CUSTOM_MIMETYPE_PREFIX + format.ToLowerInvariant();
         }
 
         public Task<string?> GetTextAsync()
@@ -47,6 +48,7 @@ namespace Avalonia.Browser
 
                     case byte[] bytes:
                         list.Add(GetCustomMimeType(format));
+                        // base64 encoded bytes to maintain consistency with ReadClipboardFormatsAsync method
                         list.Add(System.Convert.ToBase64String(bytes));
                         break;
 
@@ -62,6 +64,7 @@ namespace Avalonia.Browser
         {
             List<string> formatList = [];
 
+            // formats are returned as comma separated strings to overcome an issue with JSInterop. Promise type can't contain an array 
             var formatsString = await InputHelper.ReadClipboardFormatsAsync(BrowserWindowingPlatform.GlobalThis);
             var formats = formatsString.Split([',']);
             if (formats is not null)
@@ -87,6 +90,7 @@ namespace Avalonia.Browser
             if (format == DataFormats.Text)
                 return await GetTextAsync();
 
+            // byte array is returned as base64 string to overcome marshalling limitation (JSInterop can' marshal Promise with an array)
             var base64 = await InputHelper.ReadClipboardAsync(BrowserWindowingPlatform.GlobalThis, GetCustomMimeType(format));
             return System.Convert.FromBase64String(base64);
         }

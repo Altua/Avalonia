@@ -83,7 +83,6 @@ export class InputHelper {
         for (let i = 0; i < data.length; i += 2) {
             const format = data[i];
             obj[format] = new Blob([data[i + 1]], { type: format });
-            console.log(`writeClipboard ${data[i]} -> ${data[i + 1]}`);
         }
         await globalThis.navigator.clipboard.write([new ClipboardItem(obj)]);
     }
@@ -110,7 +109,6 @@ export class InputHelper {
                 result.push(t);
             }
         }
-
         return result.join(",");
     }
 
