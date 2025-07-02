@@ -74,7 +74,6 @@ export class InputHelper {
     }
 
     public static async writeClipboardText(globalThis: Window, text: string): Promise<void> {
-        console.log(`writeClipboardText ${text}`);
         return await globalThis.navigator.clipboard.writeText(text);
     }
 
