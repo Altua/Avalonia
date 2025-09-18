@@ -8,14 +8,14 @@
 class WindowOverlayImpl : public virtual WindowImpl
 {
 private:
-    NSWindow* parentWindow;
-    NSView* parentView;
-    NSView* canvasView;
-    NSColorPanel* colorPanel;
-    bool isTrackingMouse;
-    NSArray* eventMonitors;
-    bool closed;
-    id firstResponderObserver;
+    NSWindow* parentWindow = nil;
+    NSView* parentView = nil;
+    NSView* canvasView = nil;
+    NSColorPanel* colorPanel = nil;
+    bool isTrackingMouse = false;
+    NSArray* eventMonitors = nil;
+    bool closed = false;
+    id firstResponderObserver = nil;
     FORWARD_IUNKNOWN()
     BEGIN_INTERFACE_MAP()
     INHERIT_INTERFACE_MAP(WindowBaseImpl)
