@@ -130,8 +130,7 @@ WindowOverlayImpl::WindowOverlayImpl(void* parentWindow, char* parentView, IAvnW
     static const std::unordered_set<unsigned short> specialKeyCodes = {
         11,  // Cmd+b (Bold)
         34,  // Cmd+I (Italic)
-        32,  // Cmd+U (Underline)
-        6,   // Cmd+Shift+Z
+        32   // Cmd+U (Underline)
     };
 
     id keydownMonitor = [NSEvent addLocalMonitorForEventsMatchingMask:NSEventMaskKeyDown | NSEventMaskKeyUp | NSEventMaskFlagsChanged handler:^NSEvent * (NSEvent * event) {
