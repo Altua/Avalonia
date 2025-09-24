@@ -127,11 +127,14 @@ WindowOverlayImpl::WindowOverlayImpl(void* parentWindow, char* parentView, IAvnW
     }];
     
     // Special key codes that need explicit sending to AvnView
+    // IMPORTANT:
+    // Careful while adding keys to this list.
+    // The keys are directly sent to AvnView, so PowerPoint will not get a chance to handle them.
+    // As a result keys in this list will not be handled by PowerPoint if Grunt object is selected.
     static const std::unordered_set<unsigned short> specialKeyCodes = {
         11,  // Cmd+b (Bold)
         34,  // Cmd+I (Italic)
-        32,  // Cmd+U (Underline)
-        6,   // Cmd+Shift+Z
+        32   // Cmd+U (Underline)
     };
 
     id keydownMonitor = [NSEvent addLocalMonitorForEventsMatchingMask:NSEventMaskKeyDown | NSEventMaskKeyUp | NSEventMaskFlagsChanged handler:^NSEvent * (NSEvent * event) {
