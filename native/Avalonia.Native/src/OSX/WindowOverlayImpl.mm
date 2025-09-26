@@ -129,25 +129,9 @@ WindowOverlayImpl::WindowOverlayImpl(void* parentWindow, char* parentView, IAvnW
     // We don't get some key combinations in our keyDown: event handler in Avalonia
     // The reason could be that these key combinations are handled by performKeyEquivalent: of PowerPoint views up in the view hierarchy.
     // So using a local monitor we force the command keys to Avalonia/Grunt first
-    id keydownMonitor = [NSEvent addLocalMonitorForEventsMatchingMask:NSEventMaskKeyDown handler:^NSEvent * (NSEvent * event) {
-        NSUInteger flags = [event modifierFlags] & NSEventModifierFlagDeviceIndependentFlagsMask;
-        BOOL isCommandModifier = (event.modifierFlags & (NSEventModifierFlagCommand | NSEventModifierFlagControl)) != 0;
-
-        NSLog(@"WOI: Dispatching Key Flags =%ld, Event=%ld", flags, [event type]);
-        if (isCommandModifier && [event.window.firstResponder isKindOfClass:AvnView.class])
-        {
-            // Possible AvnView first responder scenarios are:
-            // 1) Powerpoint window: firstResponder is our overlay after a Grunt object was selected
-            // 2) Standalone Avalonia window: firstResponder is always an AvnView
-            NSLog(@"WOI: MONITOR Forcing keyboard event to AvnView");
-            if ([event.window.firstResponder performKeyEquivalent:event])
-            {
-                return nil;
-            }
-        }
-
-        NSLog(@"WOI: Monitor not handled key=%hu", [event keyCode]);
-        return event;
+    id keydownMonitor = [NSEvent addLocalMonitorForEventsMatchingMask:NSEventMaskKeyDown
+                                                              handler:^NSEvent * (NSEvent * event) {
+        return OnKeyEvent(event);
     }];
     
     eventMonitors = [NSArray arrayWithObjects: mouseMovedMonitor, leftMouseDownMonitor, keydownMonitor, nil];
@@ -389,6 +373,28 @@ HRESULT WindowOverlayImpl::PickColor(AvnColor color, bool* cancel, AvnColor* ret
     }
 
     return S_OK;
+}
+
+NSEvent* WindowOverlayImpl::OnKeyEvent(NSEvent* event)
+{
+    NSUInteger flags = [event modifierFlags] & NSEventModifierFlagDeviceIndependentFlagsMask;
+    BOOL isCommandModifier = (event.modifierFlags & (NSEventModifierFlagCommand | NSEventModifierFlagControl)) != 0;
+
+    NSLog(@"WOI: Dispatching Key Flags =%ld, Event=%ld", flags, [event type]);
+    if (isCommandModifier && [event.window.firstResponder isKindOfClass:AvnView.class])
+    {
+        // Possible AvnView first responder scenarios are:
+        // 1) Powerpoint window: firstResponder is our overlay after a Grunt object was selected
+        // 2) Standalone Avalonia window: firstResponder is always an AvnView
+        NSLog(@"WOI: MONITOR Forcing keyboard event to AvnView");
+        if ([event.window.firstResponder performKeyEquivalent:event])
+        {
+            return nil;
+        }
+    }
+
+    NSLog(@"WOI: Monitor not handled key=%hu", [event keyCode]);
+    return event;
 }
 
 

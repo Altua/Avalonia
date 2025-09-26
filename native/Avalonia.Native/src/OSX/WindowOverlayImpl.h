@@ -22,6 +22,7 @@ private:
     END_INTERFACE_MAP()
     void InitializeColorPicker();
     static AvnInputModifiers GetCommandModifier(NSEventModifierFlags modFlag);
+    NSEvent* OnKeyEvent(NSEvent* event);
 public:
     WindowOverlayImpl(void* parentWindow, char* parentView, IAvnWindowEvents* events);
     virtual ~WindowOverlayImpl();
