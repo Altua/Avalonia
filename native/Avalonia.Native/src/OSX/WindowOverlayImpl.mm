@@ -125,50 +125,13 @@ WindowOverlayImpl::WindowOverlayImpl(void* parentWindow, char* parentView, IAvnW
 
         return event;
     }];
-    
-    // Special key codes that need explicit sending to AvnView
-    // IMPORTANT:
-    // Careful while adding keys to this list.
-    // The keys are directly sent to AvnView, so PowerPoint will not get a chance to handle them.
-    // As a result keys in this list will not be handled by PowerPoint if Grunt object is selected.
-    static const std::unordered_set<unsigned short> specialKeyCodes = {
-        11,  // Cmd+b (Bold)
-        34,  // Cmd+I (Italic)
-        32   // Cmd+U (Underline)
-    };
 
-    id keydownMonitor = [NSEvent addLocalMonitorForEventsMatchingMask:NSEventMaskKeyDown | NSEventMaskKeyUp | NSEventMaskFlagsChanged handler:^NSEvent * (NSEvent * event) {
-        NSUInteger flags = [event modifierFlags] & NSEventModifierFlagDeviceIndependentFlagsMask;
-
-        AvnInputModifiers modifiers = GetCommandModifier([event modifierFlags]);
-        NSLog(@"WOI: Dispatching Key Flags =%ld, Event=%ld", flags, [event type]);
-
-        // We are only interested in special combinations and not regular keys:
-        // - Modifier alone is pressed or released (NSEventTypeFlagsChanged)
-        // - Modifier+Key events (modifiers != AvnInputModifiersNone)
-        if ((modifiers != AvnInputModifiersNone) || ([event type] == NSEventTypeFlagsChanged))
-        {
-            NSLog(@"WOI: Captured Key Event Flags =%ld, Event=%ld", flags, [event type]);
-            if ((specialKeyCodes.find([event keyCode]) != specialKeyCodes.end()) &&
-                ([[[event window] firstResponder] isKindOfClass:[AvnView class]]))
-            {
-                // The normal processing chain will call `performKeyEquivalent` for most combinations,
-                // with the exception of a few special ones. We force `sendEvent` these to our AvnView,
-                // where they will reach the regular `keyDown` / `keyUp` handlers. In the future we can
-                // consider having a singular handling point for both scenarios.
-
-                // Possible AvnView first responder scenarios are:
-                // 1) Powerpoint window: firstResponder is our overlay after a Grunt object was selected
-                // 2) Standalone Avalonia window: firstResponder is always an AvnView
-                
-                NSLog(@"WOI: MONITOR Forcing keyboard event to AvnWindow");
-                [[event window] sendEvent:event];
-                return nil;
-            }
-        }
-
-        NSLog(@"WOI: Monitor not handled key=%hu", [event keyCode]);
-        return event;
+    // We don't get some key combinations in our keyDown: event handler in Avalonia
+    // The reason could be that these key combinations are handled by performKeyEquivalent: of PowerPoint views up in the view hierarchy.
+    // So using a local monitor we force the command keys to Avalonia/Grunt first
+    id keydownMonitor = [NSEvent addLocalMonitorForEventsMatchingMask:NSEventMaskKeyDown
+                                                              handler:^NSEvent * (NSEvent * event) {
+        return OnKeyEvent(event);
     }];
     
     eventMonitors = [NSArray arrayWithObjects: mouseMovedMonitor, leftMouseDownMonitor, keydownMonitor, nil];
@@ -412,6 +375,28 @@ HRESULT WindowOverlayImpl::PickColor(AvnColor color, bool* cancel, AvnColor* ret
     return S_OK;
 }
 
+NSEvent* WindowOverlayImpl::OnKeyEvent(NSEvent* event)
+{
+    NSUInteger flags = [event modifierFlags] & NSEventModifierFlagDeviceIndependentFlagsMask;
+    BOOL isCommandModifier = (event.modifierFlags & (NSEventModifierFlagCommand | NSEventModifierFlagControl)) != 0;
+
+    NSLog(@"WOI: Dispatching Key Flags =%ld, Event=%ld", flags, [event type]);
+    if (isCommandModifier && [event.window.firstResponder isKindOfClass:AvnView.class])
+    {
+        // Possible AvnView first responder scenarios are:
+        // 1) Powerpoint window: firstResponder is our overlay after a Grunt object was selected
+        // 2) Standalone Avalonia window: firstResponder is always an AvnView
+        NSLog(@"WOI: MONITOR Forcing keyboard event to AvnView");
+        if ([event.window.firstResponder performKeyEquivalent:event])
+        {
+            return nil;
+        }
+    }
+
+    NSLog(@"WOI: Monitor not handled key=%hu", [event keyCode]);
+    return event;
+}
+
 
 #pragma mark-
 // Additional AvnView methods
@@ -427,11 +412,17 @@ HRESULT WindowOverlayImpl::PickColor(AvnColor color, bool* cancel, AvnColor* ret
 
 // This executes before keydown events but after the monitor.
 // So this is a nice (only?) way to let PowerPoint handle the keyboard shortcuts if Avalonia or Grunt doesn't handle them at runtime.
-// Event monitor is still required for handling certain key combinations, which PowerPoint blocks from reaching here.
 - (BOOL)performKeyEquivalent:(NSEvent *)event
 {
+    // Only handle if Grunt object is selected
+    if (event.window.firstResponder != self)
+    {
+        return [super performKeyEquivalent: event];
+    }
+    
     WindowImpl* parent = self.parent;
-    if (parent == nullptr){
+    if (parent == nullptr)
+    {
         return [super performKeyEquivalent: event];
     }
     
@@ -440,7 +431,7 @@ HRESULT WindowOverlayImpl::PickColor(AvnColor color, bool* cancel, AvnColor* ret
     auto timestamp = static_cast<uint64_t>(event.timestamp * 1000);
     AvnRawKeyEventType type = event.type == NSEventTypeKeyDown ? KeyDown : KeyUp;
 
-    bool handled = event.window.firstResponder == self && [self keyboardEvent: event withType: type];
+    bool handled = [self keyboardEvent: event withType: type];
     if (!handled && parent->IsOverlay())
     {
         handled = parent->BaseEvents->MonitorKeyEvent(type, timestamp, modifiers, key);
