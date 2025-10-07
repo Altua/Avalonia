@@ -582,5 +582,45 @@
     NSAccessibilityPostNotification(focused, NSAccessibilityFocusedUIElementChangedNotification);
 }
 
+- (BOOL)performKeyEquivalent:(NSEvent *)event
+{
+    // Check if view can handle the shortcut
+    if ([super performKeyEquivalent: event])
+    {
+        return YES;
+    }
+    
+    // Next steps only if Command key
+    if ((event.modifierFlags & (NSEventModifierFlagCommand | NSEventModifierFlagControl)) == 0)
+    {
+        return NO;
+    }
+    
+    // If the main window handles the shortcut
+    if (NSApp.mainWindow != self && [NSApp.mainWindow performKeyEquivalent: event])
+    {
+        return YES;
+    }
+    
+    // Handle Cmd+W etc..
+    if ([NSApp.mainMenu performKeyEquivalent: event])
+    {
+        return YES;
+    }
+    
+    // Check the views of main window can handle the shortcut key
+    // Skip AvnView because AvnView doesn't pass events to repsonder chain.
+    // Also AvnView anyway should have handled shortcuts in performKeyEquivalent phase
+    NSResponder* responder = NSApp.mainWindow.firstResponder;
+    if ([responder isKindOfClass: AvnView.class])
+    {
+        responder = responder.nextResponder;
+    }
+    
+    [responder keyDown: event];
+    
+    return YES;
+}
+
 @end
 
