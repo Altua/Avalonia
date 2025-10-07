@@ -14,9 +14,9 @@
     _view = view;
     _window = view.window;
     [_window addObserver:self
-                     forKeyPath:@"firstResponder"
-                        options:NSKeyValueObservingOptionNew
-                        context:nil];
+              forKeyPath:@"firstResponder"
+                 options:NSKeyValueObservingOptionNew
+                 context:nil];
     return self;
 }
 
