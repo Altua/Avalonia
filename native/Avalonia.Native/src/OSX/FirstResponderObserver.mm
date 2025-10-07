@@ -5,13 +5,15 @@
 @implementation FirstResponderObserver
 {
     AvnView* _view;
+    NSWindow* _window;
 }
 
 
 - (instancetype)initWithView: (AvnView*) view
 {
     _view = view;
-    [[_view window] addObserver:self
+    _window = view.window;
+    [_window addObserver:self
                      forKeyPath:@"firstResponder"
                         options:NSKeyValueObservingOptionNew
                         context:nil];
@@ -20,7 +22,7 @@
 
 - (void)dealloc
 {
-    [[_view window] removeObserver:self forKeyPath:@"firstResponder"];
+    [_window removeObserver:self forKeyPath:@"firstResponder"];
 }
 
 -(void)observeValueForKeyPath:(NSString *)keyPath ofObject:(id)object change:(NSDictionary<NSKeyValueChangeKey,id> *)change context:(void *)context
