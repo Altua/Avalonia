@@ -5,6 +5,8 @@
 
 WindowOverlayImpl::~WindowOverlayImpl()
 {
+    firstResponderObserver = nil; // Cleanup before removing the view
+    
     [View removeFromSuperview];
     [[NSNotificationCenter defaultCenter] removeObserver: View];
 
