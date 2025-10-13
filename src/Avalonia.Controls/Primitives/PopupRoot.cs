@@ -31,6 +31,7 @@ namespace Avalonia.Controls.Primitives
         private PopupPositionRequest? _popupPositionRequest;
         private Size _popupSize;
         private bool _needsUpdate;
+        private bool _ignoreMouseEvents;
 
         /// <summary>
         /// Initializes static members of the <see cref="PopupRoot"/> class.
@@ -67,6 +68,16 @@ namespace Avalonia.Controls.Primitives
         /// Gets the platform-specific window implementation.
         /// </summary>
         public new IPopupImpl? PlatformImpl => (IPopupImpl?)base.PlatformImpl;               
+
+        public bool IgnoreMouseEvents
+        {
+            get => _ignoreMouseEvents;
+            set
+            {
+               _ignoreMouseEvents = value;
+               PlatformImpl?.SetIgnoreMouseEvents(_ignoreMouseEvents);
+            }
+        }
 
         /// <summary>
         /// Gets or sets a transform that will be applied to the popup.

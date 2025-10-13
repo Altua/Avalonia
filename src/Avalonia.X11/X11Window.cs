@@ -1305,6 +1305,11 @@ namespace Avalonia.X11
         {
             ChangeWMAtoms(value, _x11.Atoms._NET_WM_STATE_ABOVE);
         }
+
+        public void SetIgnoreMouseEvents(bool ignore)
+        {
+            // Not currently supported on X11 backend.
+        }
         
         public void SetEnabled(bool enable)
         {

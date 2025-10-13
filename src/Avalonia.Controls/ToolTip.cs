@@ -437,6 +437,7 @@ namespace Avalonia.Controls
                 _popup.Child = this;
                 _popup.TakesFocusFromNativeControl = false;
                 _popup.WindowManagerAddShadowHint = false;
+                _popup.IgnoreMouseEvents = true;
 
                 _popup.Opened += OnPopupOpened;
                 _popup.Closed += OnPopupClosed;

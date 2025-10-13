@@ -104,5 +104,10 @@ namespace Avalonia.Native
         }
 
         public IPopupPositioner PopupPositioner { get; }
+
+        public void SetIgnoreMouseEvents(bool ignore)
+        {
+            (Native as IAvnPopup)?.SetIgnoresMouseEvents(ignore? 1 : 0);
+        }
     }
 }
