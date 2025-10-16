@@ -1,6 +1,8 @@
 //This file will contain actual IID structures
 #define COM_GUIDS_MATERIALIZE
 #include "common.h"
+#import "AvnView.h"
+#import "KeyTransform.h"
 
 static NSString* s_appTitle = @"Avalonia";
 static int disableSetProcessName = 0;
@@ -536,6 +538,34 @@ public:
             return S_OK;
         }
     }
+    
+    virtual HRESULT SendKeyEvent(void* nsWindow, AvnInputModifiers modifiers, AvnKey key, bool* handled) override
+    {
+        @autoreleasepool {            
+            NSWindow* targetWindow = (__bridge NSWindow*)nsWindow;
+            
+            // Only forward events from key window to main window
+            if (NSApp.mainWindow == NSApp.keyWindow || targetWindow != NSApp.mainWindow)
+            {
+                *handled = false;
+                return S_OK;
+            }
+            
+            // Handle keyDown.
+            // Sending it again to AvnView causes stack overflow
+            NSResponder* target = targetWindow.firstResponder;
+            if ([target isKindOfClass:AvnView.class])
+            {
+                target = target.nextResponder;
+            }
+            
+            NSEvent* event = CreateEvent(key, modifiers, targetWindow);
+            [target keyDown: event];
+            *handled = true;
+
+            return S_OK;
+        }
+    }
 };
 
 extern "C" IAvaloniaNativeFactory* CreateAvaloniaNative()
@@ -552,6 +582,22 @@ extern void FreeAvnGCHandle(void* handle)
 extern void PostDispatcherCallback(IAvnActionCallback* cb)
 {
     _dispatcher->Post(cb);
+}
+
+NSEventModifierFlags AvnInputModifiersToFlags(AvnInputModifiers modifiers)
+{
+    NSEventModifierFlags flags = 0;
+    
+    if (modifiers & Control)
+        flags |= NSEventModifierFlagControl;
+    if (modifiers & Shift)
+        flags |= NSEventModifierFlagShift;
+    if (modifiers & Alt)
+        flags |= NSEventModifierFlagOption;
+    if (modifiers & Windows)
+        flags |= NSEventModifierFlagCommand;
+    
+    return flags;
 }
 
 NSSize ToNSSize (AvnSize s)
@@ -636,3 +682,25 @@ NSView* FindNSView(NSWindow* window, NSString* viewName)
 
     return nil;
 }
+
+NSEvent* CreateEvent(AvnKey key, AvnInputModifiers modifiers, NSWindow* window)
+{
+    NSEventModifierFlags flags = AvnInputModifiersToFlags(modifiers);
+    auto keyCode = ScanCodeFromVirtualKey(key);
+    auto chars = KeySymbolFromScanCode(keyCode, flags & ~NSEventModifierFlagShift);
+    auto charsIgnoringModifiers = KeySymbolFromScanCode(keyCode, flags & NSEventModifierFlagShift);
+
+    NSEvent* event = [NSEvent keyEventWithType: NSEventTypeKeyDown
+                                      location:NSZeroPoint
+                                 modifierFlags:flags
+                                     timestamp:[[NSProcessInfo processInfo] systemUptime]
+                                  windowNumber:window.windowNumber
+                                       context:nil
+                                    characters:chars
+                   charactersIgnoringModifiers:charsIgnoringModifiers
+                                     isARepeat:false
+                                       keyCode:keyCode];
+    
+    return event;
+}
+

@@ -370,6 +370,26 @@ static std::unordered_map<AvnKey, uint16_t, std::hash<int>> BuildMenuCharFromVir
 
 std::unordered_map<AvnKey, uint16_t, std::hash<int>> menuCharFromVirtualKey = BuildMenuCharFromVirtualKey();
 
+static std::unordered_map<AvnKey, uint16_t, std::hash<int>> BuildScanCodeFromVirtualKey()
+{
+    std::unordered_map<AvnKey, uint16_t, std::hash<int>> result;
+    result.reserve(sizeof(keyInfos) / sizeof(keyInfos[0]));
+
+    for (auto& keyInfo : keyInfos)
+    {
+        // Use the QWERTY mapping for the reverse lookup
+        // Only add if not already present (first occurrence wins)
+        if (result.find(keyInfo.qwertyKey) == result.end())
+        {
+            result[keyInfo.qwertyKey] = keyInfo.scanCode;
+        }
+    }
+
+    return result;
+}
+
+std::unordered_map<AvnKey, uint16_t, std::hash<int>> scanCodeFromVirtualKey = BuildScanCodeFromVirtualKey();
+
 static bool IsNumpadOrNumericKey(AvnPhysicalKey physicalKey)
 {
     return (physicalKey >= AvnPhysicalKeyDigit0 && physicalKey <= AvnPhysicalKeyDigit9)
@@ -508,4 +528,10 @@ uint16_t MenuCharFromVirtualKey(AvnKey key)
 {
     auto it = menuCharFromVirtualKey.find(key);
     return it == menuCharFromVirtualKey.end() ? 0 : it->second;
+}
+
+uint16_t ScanCodeFromVirtualKey(AvnKey key)
+{
+    auto it = scanCodeFromVirtualKey.find(key);
+    return it == scanCodeFromVirtualKey.end() ? 0 : it->second;
 }
