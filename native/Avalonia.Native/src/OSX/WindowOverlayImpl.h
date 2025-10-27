@@ -23,6 +23,8 @@ private:
     void InitializeColorPicker();
     static AvnInputModifiers GetCommandModifier(NSEventModifierFlags modFlag);
     NSEvent* OnKeyEvent(NSEvent* event);
+    bool MonitorKeyEvent(NSEvent* event);
+
 public:
     WindowOverlayImpl(void* parentWindow, char* parentView, IAvnWindowEvents* events);
     virtual ~WindowOverlayImpl();
