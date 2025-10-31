@@ -8,6 +8,8 @@ AvnPhysicalKey PhysicalKeyFromScanCode(uint16_t scanCode);
 
 AvnKey VirtualKeyFromScanCode(uint16_t scanCode, NSEventModifierFlags modifierFlags);
 
+uint16_t ScanCodeFromVirtualKey(AvnKey key);
+
 NSString* KeySymbolFromScanCode(uint16_t scanCode, NSEventModifierFlags modifierFlags);
 
 uint16_t MenuCharFromVirtualKey(AvnKey key);

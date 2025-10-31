@@ -50,6 +50,8 @@ extern AvnPoint ConvertPointY (AvnPoint p);
 extern NSSize ToNSSize (AvnSize s);
 extern NSView* FindNSView(NSWindow* window, NSString* viewName);
 extern AvnSize FromNSSize (NSSize s);
+extern NSEventModifierFlags AvnInputModifiersToFlags(AvnInputModifiers modifiers);
+extern NSEvent* CreateEvent(AvnKey key, AvnInputModifiers modifiers, NSWindow* window);
 
 #ifdef DEBUG
 #define NSDebugLog(...) NSLog(__VA_ARGS__)

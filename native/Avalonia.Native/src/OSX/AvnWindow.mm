@@ -473,30 +473,6 @@
     }
 }
 
-- (void)keyDown:(NSEvent *)event
-{
-    auto parent = _parent.tryGetWithCast<WindowBaseImpl>();
-    auto parentWindow = parent != nullptr? parent->Parent : nullptr;
-    if (parentWindow == nullptr || !parentWindow->IsOverlay())
-    {
-        [super keyDown:event];
-        return;
-    }
-    
-    // Pass any command or control key modifiers to PowerPoint window
-    if ((event.modifierFlags & (NSEventModifierFlagCommand | NSEventModifierFlagControl)) != 0 )
-    {
-        if (self != NSApp.mainWindow)
-        {
-            [NSApp.mainWindow sendEvent:event];
-        }
-    }
-    else
-    {
-        [super keyDown:event];
-    }
-}
-
 - (void)sendEvent:(NSEvent *_Nonnull)event
 {
     // Debug key events

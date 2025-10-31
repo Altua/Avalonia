@@ -230,5 +230,15 @@ namespace Avalonia.Native
         {
             _factory.ShowFolder(filePath);
         }
+
+        public bool SendKeyEvent(IntPtr nsWindow, uint modifiers, uint key)
+        {
+            unsafe
+            {
+                int handled = 0;
+                _factory.SendKeyEvent(nsWindow, (AvnInputModifiers)modifiers, (AvnKey)key, &handled);
+                return handled != 0;
+            }
+        }
     }
 }

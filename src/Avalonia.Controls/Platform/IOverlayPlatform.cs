@@ -1,5 +1,6 @@
 using System;
 using Avalonia.Metadata;
+using Avalonia.Remote.Protocol.Input;
 
 namespace Avalonia.Platform
 {
@@ -10,6 +11,7 @@ namespace Avalonia.Platform
         bool AppActivate(string name);
         void HideWindow(IntPtr nsWindow);
         void ShowFolder(string filePath);
+        bool SendKeyEvent(IntPtr nsWindow, uint modifiers, uint key);
     }
 
 }

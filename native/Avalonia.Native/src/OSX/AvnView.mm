@@ -653,12 +653,6 @@
                 keyDownHandled = parent->TopLevelEvents->RawTextInputEvent(timestamp, [keySymbol UTF8String]);
             }
         }
-        
-        // Let super class handle any unhandled commands
-        if (!keyDownHandled)
-        {
-            [super keyDown:event];
-        }
     }
     
     _lastKeyDownEvent = nullptr;
