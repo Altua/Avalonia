@@ -62,6 +62,12 @@ namespace Avalonia.Controls.Primitives
         bool Topmost { get; set; }
 
         /// <summary>
+        /// Gets or sets a value indicating whether the popup should ignore mouse input and let
+        /// events fall through to underlying window.
+        /// </summary>
+        bool IgnoreMouseEvents { get; set; }
+
+        /// <summary>
         /// Gets or sets a transform that will be applied to the popup.
         /// </summary>
         Transform? Transform { get; set; }

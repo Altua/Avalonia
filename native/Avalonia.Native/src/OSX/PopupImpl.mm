@@ -69,6 +69,19 @@ public:
 
         return WindowBaseImpl::ShouldTakeFocusOnShow();
     }
+    
+    HRESULT SetIgnoresMouseEvents(bool value) override {
+        START_COM_CALL;
+
+        @autoreleasepool {
+            if (Window != nullptr)
+            {
+                [Window setIgnoresMouseEvents:value];
+            }
+
+            return S_OK;
+        }
+    }
 };
 
 

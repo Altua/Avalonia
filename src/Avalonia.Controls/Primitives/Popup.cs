@@ -344,6 +344,16 @@ namespace Avalonia.Controls.Primitives
         }
 
         /// <summary>
+        /// Gets or sets a value indicating whether mouse events should be ignored by the popup and
+        /// allowed to pass through to underlying controls.
+        /// </summary>
+        public bool IgnoreMouseEvents
+        {
+            get;
+            set;
+        }
+
+        /// <summary>
         /// Gets or sets the Horizontal offset of the popup in relation to the <see cref="PlacementTarget"/>.
         /// </summary>
         public double HorizontalOffset
@@ -431,6 +441,7 @@ namespace Avalonia.Controls.Primitives
             popupHost.Topmost = Topmost;
             popupHost.SetChild(Child);
             ((ISetLogicalParent)popupHost).SetParent(this);
+            popupHost.IgnoreMouseEvents = IgnoreMouseEvents;
 
             if (InheritsTransform)
             {

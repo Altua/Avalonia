@@ -152,6 +152,11 @@ namespace Avalonia.Headless
 
         }
 
+        public void SetIgnoreMouseEvents(bool ignore)
+        {
+
+        }
+
         public WindowState WindowState { get; set; }
         public Action<WindowState>? WindowStateChanged { get; set; }
         public void SetTitle(string? title)

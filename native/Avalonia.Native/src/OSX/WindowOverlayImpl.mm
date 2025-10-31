@@ -136,7 +136,20 @@ WindowOverlayImpl::WindowOverlayImpl(void* parentWindow, char* parentView, IAvnW
         return OnKeyEvent(event);
     }];
     
-    eventMonitors = [NSArray arrayWithObjects: mouseMovedMonitor, leftMouseDownMonitor, keydownMonitor, nil];
+    // We need to monitor modifier key states
+    // Better to handle this separately than mixing it with keyDown.
+    id flagsChangedMonitor = [NSEvent addLocalMonitorForEventsMatchingMask:NSEventMaskFlagsChanged
+                                                              handler:^NSEvent * (NSEvent * event) {
+        MonitorKeyEvent(event);
+        return event;
+    }];
+    
+    eventMonitors = [NSArray arrayWithObjects:
+                     mouseMovedMonitor,
+                     leftMouseDownMonitor,
+                     keydownMonitor,
+                     flagsChangedMonitor,
+                     nil];
 }
 
 
@@ -406,17 +419,22 @@ NSEvent* WindowOverlayImpl::OnKeyEvent(NSEvent* event)
     }
     
     // This needed to intercept certain key events, like Cmd+V, even when Grunt object is not seleceted
-    auto modifiers = WindowOverlayImpl::GetCommandModifier(event.modifierFlags);
-    auto key = VirtualKeyFromScanCode(event.keyCode, event.modifierFlags);
-    auto timestamp = static_cast<uint64_t>(event.timestamp * 1000);
-    AvnRawKeyEventType type = event.type == NSEventTypeKeyDown ? KeyDown : KeyUp;
-    if (BaseEvents->MonitorKeyEvent(type, timestamp, modifiers, key))
+    if (MonitorKeyEvent(event))
     {
         return nil;
     }
     
     NSLog(@"WOI: Monitor not handled key=%hu", [event keyCode]);
     return event;
+}
+
+bool WindowOverlayImpl::MonitorKeyEvent(NSEvent* event)
+{
+    auto modifiers = WindowOverlayImpl::GetCommandModifier(event.modifierFlags);
+    auto key = VirtualKeyFromScanCode(event.keyCode, event.modifierFlags);
+    auto timestamp = static_cast<uint64_t>(event.timestamp * 1000);
+    AvnRawKeyEventType type = event.type == NSEventTypeKeyUp ? KeyUp: KeyDown;
+    return BaseEvents->MonitorKeyEvent(type, timestamp, modifiers, key);
 }
 
 #pragma mark-

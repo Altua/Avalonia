@@ -13,5 +13,6 @@ namespace Avalonia.Platform
 
         void SetWindowManagerAddShadowHint(bool enabled);
         void TakeFocus();
+        void SetIgnoreMouseEvents(bool ignore);
     }
 }
