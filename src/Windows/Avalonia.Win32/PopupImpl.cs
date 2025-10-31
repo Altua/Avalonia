@@ -173,5 +173,9 @@ namespace Avalonia.Win32
         }
 
         public IPopupPositioner PopupPositioner { get; }
+
+        public void SetIgnoreMouseEvents(bool ignore)
+        {
+        }
     }
 }

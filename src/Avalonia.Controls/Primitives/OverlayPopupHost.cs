@@ -25,7 +25,6 @@ namespace Avalonia.Controls.Primitives
         private PopupPositionRequest? _popupPositionRequest;
         private Size _popupSize;
         private bool _needsUpdate;
-
         static OverlayPopupHost()
             => KeyboardNavigation.TabNavigationProperty.OverrideDefaultValue<OverlayPopupHost>(KeyboardNavigationMode.Cycle);
 
@@ -58,6 +57,12 @@ namespace Avalonia.Controls.Primitives
         {
             get => false;
             set { /* Not currently supported in overlay popups */ }
+        }
+
+        bool IPopupHost.IgnoreMouseEvents
+        {
+            get;
+            set;
         }
 
         private IInputRoot? InputRoot

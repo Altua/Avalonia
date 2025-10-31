@@ -212,6 +212,10 @@ namespace Avalonia.DesignerSupport.Remote
             return null;
         }
         public void TakeFocus() { }
+
+        public void SetIgnoreMouseEvents(bool ignore)
+        {
+        }
     }
 
     class ClipboardStub : IClipboard
