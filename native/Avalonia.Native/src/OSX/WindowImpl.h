@@ -65,6 +65,8 @@ BEGIN_INTERFACE_MAP()
     virtual HRESULT SetExtendTitleBarHeight (double value) override;
     
     virtual HRESULT GetWindowZOrder (long* zOrder) override;
+    
+    virtual HRESULT Close() override;
 
     void EnterFullScreenMode ();
 
@@ -89,6 +91,8 @@ protected:
 private:
     void ZOrderChildWindows();
     void OnInitialiseNSWindow();
+    static void RunModalSession(NSWindow* window);
+    
     NSString *_lastTitle;
     bool _isEnabled;
     bool _canResize;

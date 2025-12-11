@@ -58,9 +58,25 @@ HRESULT WindowImpl::Show(bool activate, bool isDialog) {
         if(IsZoomed()) {
             _lastWindowState = _actualWindowState;
         }
+        
+        if (IsModal()) {
+            RunModalSession(Window);
+        }
 
         return SetWindowState(_lastWindowState);
     }
+}
+
+HRESULT WindowImpl::Close() {
+    START_COM_CALL;
+    
+    @autoreleasepool {
+        if (IsModal()) {
+            [NSApp stopModal];
+        }
+    }
+
+    return WindowBaseImpl::Close();
 }
 
 HRESULT WindowImpl::SetEnabled(bool enable) {
@@ -608,6 +624,21 @@ void WindowImpl::UpdateAppearance() {
     [miniaturizeButton setEnabled:_isEnabled];
     [zoomButton setHidden:!hasTrafficLights];
     [zoomButton setEnabled:CanZoom()];
+}
+
+void WindowImpl::RunModalSession(NSWindow *window)
+{
+    NSModalSession session = [NSApp beginModalSessionForWindow:window];
+    
+    NSTimer* timer = [NSTimer timerWithTimeInterval:1/60.0 repeats:YES block:^(NSTimer * _Nonnull timer) {
+        NSModalResponse resp = [NSApp runModalSession:session];
+        if (resp != NSModalResponseContinue) {
+            [timer invalidate];
+            [NSApp endModalSession:session];
+        }
+    }];
+    
+    [[NSRunLoop mainRunLoop] addTimer: timer forMode:NSDefaultRunLoopMode];
 }
 
 extern IAvnWindow* CreateAvnWindow(IAvnWindowEvents*events)
