@@ -16,6 +16,7 @@ extern IAvnWindow* CreateAvnWindow(IAvnWindowEvents*events);
 extern IAvnWindow* CreateAvnOverlay(void* overlayWindow, char* parentView, IAvnWindowEvents*events);
 extern IAvnPopup* CreateAvnPopup(IAvnWindowEvents*events);
 extern IAvnStorageProvider* CreateStorageProvider();
+extern IAvnWebAuthenticationBroker* CreateWebAuthenticationBroker();
 extern IAvnScreens* CreateScreens(IAvnScreenEvents* cb);
 extern IAvnClipboard* CreateClipboard(NSPasteboard*, NSPasteboardItem*);
 extern NSPasteboardItem* TryGetPasteboardItem(IAvnClipboard*);
