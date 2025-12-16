@@ -1,10 +1,3 @@
-//
-//  WebAuthenticationBroker.h
-//  Avalonia.Native.OSX
-//
-//  Created by Adarsh Bhat on 15/12/25.
-//  Copyright © 2025 Avalonia. All rights reserved.
-//
 #pragma once
 
 #import <AppKit/AppKit.h>

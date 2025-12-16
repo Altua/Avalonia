@@ -1,10 +1,3 @@
-//
-//  WebAuthenticationBroker.mm
-//  Avalonia.Native.OSX
-//
-//  Created by Adarsh Bhat on 15/12/25.
-//  Copyright © 2025 Avalonia. All rights reserved.
-//
 #include <AppKit/AppKit.h>
 #include <WebKit/WebKit.h>
 #include <dispatch/dispatch.h>
@@ -12,8 +5,6 @@
 #include "WebAuthenticationBroker.h"
 #include "AvnString.h"
 #include "INSWindowHolder.h"
-
-
 
 @implementation WebAuthenticationController
 {
