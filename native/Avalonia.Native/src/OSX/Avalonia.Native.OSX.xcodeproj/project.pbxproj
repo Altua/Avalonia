@@ -62,6 +62,9 @@
 		BC7C33822C066DBF00945A48 /* AvnAutomationNode.h in Headers */ = {isa = PBXBuildFile; fileRef = BC7C33812C066DBF00945A48 /* AvnAutomationNode.h */; };
 		C7017DC72DED61F300CA0E87 /* FirstResponderObserver.h in Headers */ = {isa = PBXBuildFile; fileRef = C7017DC52DED61F300CA0E87 /* FirstResponderObserver.h */; };
 		C7017DC82DED61F300CA0E87 /* FirstResponderObserver.mm in Sources */ = {isa = PBXBuildFile; fileRef = C7017DC62DED61F300CA0E87 /* FirstResponderObserver.mm */; };
+		C71A03DC2EF197AC0069672D /* WebAuthenticationBroker.mm in Sources */ = {isa = PBXBuildFile; fileRef = C71A03DB2EF197AC0069672D /* WebAuthenticationBroker.mm */; };
+		C71A03DD2EF197AC0069672D /* WebAuthenticationBroker.h in Headers */ = {isa = PBXBuildFile; fileRef = C71A03DA2EF197AC0069672D /* WebAuthenticationBroker.h */; };
+		C71A03DF2EF197BC0069672D /* WebKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = C71A03DE2EF197BC0069672D /* WebKit.framework */; };
 		ED3791C42862E1F40080BD62 /* UniformTypeIdentifiers.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = ED3791C32862E1F40080BD62 /* UniformTypeIdentifiers.framework */; };
 		ED754D262A97306B0078B4DF /* PlatformRenderTimer.mm in Sources */ = {isa = PBXBuildFile; fileRef = ED754D252A97306B0078B4DF /* PlatformRenderTimer.mm */; };
 		EDF8CDCD2964CB01001EE34F /* PlatformSettings.mm in Sources */ = {isa = PBXBuildFile; fileRef = EDF8CDCC2964CB01001EE34F /* PlatformSettings.mm */; };
@@ -133,6 +136,9 @@
 		BC7C33832C066F1100945A48 /* AvnAccessibility.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = AvnAccessibility.h; sourceTree = "<group>"; };
 		C7017DC52DED61F300CA0E87 /* FirstResponderObserver.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = FirstResponderObserver.h; sourceTree = "<group>"; };
 		C7017DC62DED61F300CA0E87 /* FirstResponderObserver.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = FirstResponderObserver.mm; sourceTree = "<group>"; };
+		C71A03DA2EF197AC0069672D /* WebAuthenticationBroker.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = WebAuthenticationBroker.h; sourceTree = "<group>"; };
+		C71A03DB2EF197AC0069672D /* WebAuthenticationBroker.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = WebAuthenticationBroker.mm; sourceTree = "<group>"; };
+		C71A03DE2EF197BC0069672D /* WebKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WebKit.framework; path = System/Library/Frameworks/WebKit.framework; sourceTree = SDKROOT; };
 		ED3791C32862E1F40080BD62 /* UniformTypeIdentifiers.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = UniformTypeIdentifiers.framework; path = System/Library/Frameworks/UniformTypeIdentifiers.framework; sourceTree = SDKROOT; };
 		ED754D252A97306B0078B4DF /* PlatformRenderTimer.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = PlatformRenderTimer.mm; sourceTree = "<group>"; };
 		EDF8CDCC2964CB01001EE34F /* PlatformSettings.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = PlatformSettings.mm; sourceTree = "<group>"; };
@@ -145,6 +151,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				C71A03DF2EF197BC0069672D /* WebKit.framework in Frameworks */,
 				ED3791C42862E1F40080BD62 /* UniformTypeIdentifiers.framework in Frameworks */,
 				1A3E5EB023E9FE8300EDE661 /* QuartzCore.framework in Frameworks */,
 				1A3E5EAA23E9F26C00EDE661 /* IOSurface.framework in Frameworks */,
@@ -162,6 +169,7 @@
 		AB661C1C2148230E00291242 /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
+				C71A03DE2EF197BC0069672D /* WebKit.framework */,
 				ED3791C32862E1F40080BD62 /* UniformTypeIdentifiers.framework */,
 				522D5958258159C1006F7F7A /* Carbon.framework */,
 				1A3E5EAF23E9FE8300EDE661 /* QuartzCore.framework */,
@@ -177,6 +185,8 @@
 		AB7A61E62147C814003C5833 = {
 			isa = PBXGroup;
 			children = (
+				C71A03DA2EF197AC0069672D /* WebAuthenticationBroker.h */,
+				C71A03DB2EF197AC0069672D /* WebAuthenticationBroker.mm */,
 				C7017DC52DED61F300CA0E87 /* FirstResponderObserver.h */,
 				C7017DC62DED61F300CA0E87 /* FirstResponderObserver.mm */,
 				F10084852BFF1FB40024303E /* TopLevelImpl.mm */,
@@ -262,6 +272,7 @@
 				F10084842BFF1F9E0024303E /* TopLevelImpl.h in Headers */,
 				BC11A5BE2608D58F0017BAD0 /* automation.h in Headers */,
 				183916173528EC2737DBE5E1 /* WindowBaseImpl.h in Headers */,
+				C71A03DD2EF197AC0069672D /* WebAuthenticationBroker.h in Headers */,
 				1839171DCC651B0638603AC4 /* INSWindowHolder.h in Headers */,
 				183919D91DB9AAB5D700C2EA /* WindowImpl.h in Headers */,
 				BC7C33822C066DBF00945A48 /* AvnAutomationNode.h in Headers */,
@@ -361,6 +372,7 @@
 				1839125F057B0A4EB1760058 /* WindowImpl.mm in Sources */,
 				18391068E48EF96E3DB5FDAB /* ResizeScope.mm in Sources */,
 				18391D4EB311BC7EF8B8C0A6 /* AvnView.mm in Sources */,
+				C71A03DC2EF197AC0069672D /* WebAuthenticationBroker.mm in Sources */,
 				18391AA7E0BBA74D184C5734 /* AutoFitContentView.mm in Sources */,
 				5819C99C29B5EA0C00157401 /* WindowOverlayImpl.mm in Sources */,
 				ED754D262A97306B0078B4DF /* PlatformRenderTimer.mm in Sources */,

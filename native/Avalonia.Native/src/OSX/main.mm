@@ -3,6 +3,7 @@
 #include "common.h"
 #import "AvnView.h"
 #import "KeyTransform.h"
+#include "WebAuthenticationBroker.h"
 
 static NSString* s_appTitle = @"Avalonia";
 static int disableSetProcessName = 0;
@@ -566,6 +567,20 @@ public:
             return S_OK;
         }
     }
+
+    virtual HRESULT CreateWebAuthenticationBroker(IAvnWebAuthenticationBroker** ppv) override
+    {
+        START_COM_CALL;
+
+        @autoreleasepool
+        {
+            if (ppv == nullptr)
+                return E_POINTER;
+
+            *ppv = ::CreateWebAuthenticationBroker();
+            return S_OK;
+        }
+    }
 };
 
 extern "C" IAvaloniaNativeFactory* CreateAvaloniaNative()
@@ -703,4 +718,3 @@ NSEvent* CreateEvent(AvnKey key, AvnInputModifiers modifiers, NSWindow* window)
     
     return event;
 }
-
