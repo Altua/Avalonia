@@ -38,10 +38,6 @@
     return self;
 }
 
--(void)dealloc
-{
-}
-
 -(void)run
 {
     NSURL* requestUrl = [NSURL URLWithString:self.requestUrl];
@@ -53,14 +49,21 @@
 
 - (void)runModalSession
 {
+    NSWindow* parent = NSApp.modalWindow; // safe even if modal window is null
+    parent.ignoresMouseEvents = YES;
+    
     NSModalSession session = [NSApp beginModalSessionForWindow: _window];
     NSTimer* timer = [NSTimer scheduledTimerWithTimeInterval:1/60.0f repeats:YES block:^(NSTimer * _Nonnull timer) {
         NSModalResponse resp = [NSApp runModalSession:session];
         if (resp != NSModalResponseContinue) {
             [timer invalidate];
             [NSApp endModalSession:session];
+            
+            parent.ignoresMouseEvents = NO; // This is the only exit path from modal.
         }
     }];
+    
+    [[NSRunLoop mainRunLoop] addTimer: timer forMode:NSRunLoopCommonModes];
 }
 
 - (void)onComplete: (NSString*) url
@@ -93,6 +96,7 @@
 
 - (void)windowWillClose:(NSNotification *)notification
 {
+    _window.delegate = nil;
     [self onComplete:nil];
 }
 

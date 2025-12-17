@@ -631,6 +631,10 @@ void WindowImpl::RunModalSession(NSWindow *window)
     NSModalSession session = [NSApp beginModalSessionForWindow:window];
     
     NSTimer* timer = [NSTimer timerWithTimeInterval:1/60.0 repeats:YES block:^(NSTimer * _Nonnull timer) {
+        
+        if (NSApp.modalWindow != window)
+            return;
+        
         NSModalResponse resp = [NSApp runModalSession:session];
         if (resp != NSModalResponseContinue) {
             [timer invalidate];
@@ -638,7 +642,7 @@ void WindowImpl::RunModalSession(NSWindow *window)
         }
     }];
     
-    [[NSRunLoop mainRunLoop] addTimer: timer forMode:NSDefaultRunLoopMode];
+    [[NSRunLoop mainRunLoop] addTimer: timer forMode:NSRunLoopCommonModes];
 }
 
 extern IAvnWindow* CreateAvnWindow(IAvnWindowEvents*events)
