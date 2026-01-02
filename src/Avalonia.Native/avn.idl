@@ -699,6 +699,15 @@ interface IAvaloniaNativeFactory : IUnknown
      HRESULT HideWindow([intptr]void* nsWindow);
      HRESULT ShowFolder(char* path);
      HRESULT SendKeyEvent([intptr]void* nsWindow, AvnInputModifiers modifiers, AvnKey key, bool* handled);
+     HRESULT CreateWebAuthenticationBroker(IAvnWebAuthenticationBroker** ppv);
+}
+
+[uuid(7b9a4c9f-0f8f-4e5e-9c6a-2e7f1a6f3c7d)]
+interface IAvnWebAuthenticationBroker : IUnknown
+{
+     void Authenticate( [const] char* authUrl,
+                        [const] char* redirectUrl,
+                        IAvnSystemDialogEvents* events);
 }
 
 [uuid(233e094f-9b9f-44a3-9a6e-6948bbdd9fb1)]
