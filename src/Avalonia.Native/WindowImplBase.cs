@@ -239,5 +239,10 @@ namespace Avalonia.Native
 
             return new Color(_outputColor.Alpha, _outputColor.Red, _outputColor.Green, _outputColor.Blue);
         }
+
+        public unsafe void Unfocus()
+        {
+            Native?.Unfocus();
+        }
     }
 }

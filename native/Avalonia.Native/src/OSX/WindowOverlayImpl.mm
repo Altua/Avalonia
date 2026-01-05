@@ -331,6 +331,28 @@ HRESULT WindowOverlayImpl::TakeScreenshot(void** ret, int* retLength) {
     return S_OK;
 }
 
+HRESULT WindowOverlayImpl::Unfocus()
+{
+    START_COM_CALL;
+
+    @autoreleasepool {
+        NSWindow *window = this->parentWindow;
+
+        // Resign first responder if we are the first responder
+        if (window.firstResponder == View)
+        {
+            if ([window makeFirstResponder:View.nextResponder]) {
+                NSLog(@"UNFOCUS: Successfully resigned first responder from overlay view.");
+            } else {
+                NSLog(@"UNFOCUS: Failed to resign first responder from overlay view.");
+            }
+        }       
+    }
+
+    return S_OK;
+}
+
+
 void WindowOverlayImpl::InitializeColorPicker() {
     this->colorPanel = [NSColorPanel sharedColorPanel];
     this->colorPanel.showsAlpha = true;
