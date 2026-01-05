@@ -21,6 +21,8 @@ namespace Avalonia.Platform
         public Bitmap TakeScreenshot();
 
         public Color? PickColor(Color? initialColor);
+
+        public void Unfocus();
         
     }
 }

@@ -35,6 +35,7 @@ public:
     virtual HRESULT GetPPTClipViewOrigin(AvnPoint *ret) override;
     virtual HRESULT TakeScreenshot(void** ret, int* retLength) override;
     virtual HRESULT PickColor(AvnColor color, bool* cancel, AvnColor* ret) override;
+    virtual HRESULT Unfocus() override;
     virtual HRESULT Activate() override;
     virtual HRESULT Close() override;
 };

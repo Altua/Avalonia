@@ -294,6 +294,15 @@ HRESULT TopLevelImpl::PickColor(AvnColor color, bool* cancel, AvnColor* ret) {
     }
 }
 
+HRESULT TopLevelImpl::Unfocus() {
+    START_COM_CALL;
+
+    @autoreleasepool {
+        // This should only be called on WindowOverlay
+        return E_FAIL;
+    }
+}
+
 bool TopLevelImpl::IsOverlay()
 {
     return false;
