@@ -6,6 +6,7 @@ using System.Threading;
 using Avalonia.Browser.Interop;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Controls.Platform;
+using Avalonia.Diagnostics;
 using Avalonia.Input;
 using Avalonia.Input.Platform;
 using Avalonia.Platform;
@@ -93,7 +94,8 @@ internal class BrowserWindowingPlatform : IWindowingPlatform
             .Bind<IPlatformIconLoader>().ToSingleton<IconLoaderStub>()
             .Bind<PlatformHotkeyConfiguration>().ToSingleton<PlatformHotkeyConfiguration>()
             .Bind<KeyGestureFormatInfo>().ToConstant(new KeyGestureFormatInfo(new Dictionary<Key, string>() { }))
-            .Bind<IActivatableLifetime>().ToSingleton<BrowserActivatableLifetime>();
+            .Bind<IActivatableLifetime>().ToSingleton<BrowserActivatableLifetime>()
+            .Bind<IConsoleLog>().ToSingleton<ConsoleLogImpl>();
         if (IsManagedDispatcherEnabled)
         {
             EventGrouperDispatchQueue = new();
