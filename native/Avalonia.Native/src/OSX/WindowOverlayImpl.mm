@@ -455,7 +455,28 @@ bool WindowOverlayImpl::MonitorKeyEvent(NSEvent* event)
     auto modifiers = WindowOverlayImpl::GetCommandModifier(event.modifierFlags);
     auto key = VirtualKeyFromScanCode(event.keyCode, event.modifierFlags);
     auto timestamp = static_cast<uint64_t>(event.timestamp * 1000);
-    AvnRawKeyEventType type = event.type == NSEventTypeKeyUp ? KeyUp: KeyDown;
+    
+    AvnRawKeyEventType type;
+    if (event.type == NSEventTypeKeyUp)
+    {
+        type = KeyUp;
+    }
+    else if (event.type == NSEventTypeKeyDown)
+    {
+        type = KeyDown;
+    }
+    else
+    {
+        if (modifiers != AvnInputModifiersNone)
+        {
+            type = KeyDown;
+        }
+        else
+        {
+            type = KeyUp;
+        }
+    }
+    
     return BaseEvents->MonitorKeyEvent(type, timestamp, modifiers, key);
 }
 
