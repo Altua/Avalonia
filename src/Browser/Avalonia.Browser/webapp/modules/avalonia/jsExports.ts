@@ -17,6 +17,10 @@ export class JsExports {
     public static get CanvasHelper(): any {
         return this.resolvedExports?.Avalonia.Browser.Interop.CanvasHelper;
     }
+
+    public static get ConsoleLogHelper(): any {
+        return this.resolvedExports?.Avalonia.Browser.Interop.ConsoleLogHelper;
+    }
 }
 async function resolveExports (): Promise<any> {
     const runtimeApi = await globalThis.getDotnetRuntime(0);
