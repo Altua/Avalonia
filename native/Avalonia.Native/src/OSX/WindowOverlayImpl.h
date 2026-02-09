@@ -22,6 +22,7 @@ private:
     END_INTERFACE_MAP()
     void InitializeColorPicker();
     static AvnInputModifiers GetCommandModifier(NSEventModifierFlags modFlag);
+    static bool IsKeyDown(AvnKey key, AvnInputModifiers modifiers);
     NSEvent* OnKeyEvent(NSEvent* event);
     bool MonitorKeyEvent(NSEvent* event);
 

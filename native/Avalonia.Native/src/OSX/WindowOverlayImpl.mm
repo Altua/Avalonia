@@ -140,7 +140,10 @@ WindowOverlayImpl::WindowOverlayImpl(void* parentWindow, char* parentView, IAvnW
     // Better to handle this separately than mixing it with keyDown.
     id flagsChangedMonitor = [NSEvent addLocalMonitorForEventsMatchingMask:NSEventMaskFlagsChanged
                                                               handler:^NSEvent * (NSEvent * event) {
-        MonitorKeyEvent(event);
+        if (event.window == parentWindow)
+        {
+            MonitorKeyEvent(event);
+        }
         return event;
     }];
     
@@ -170,6 +173,31 @@ AvnInputModifiers WindowOverlayImpl::GetCommandModifier(NSEventModifierFlags mod
         return AvnInputModifiersNone;
     else
         return (AvnInputModifiers)rv;
+}
+
+bool WindowOverlayImpl::IsKeyDown(AvnKey key, AvnInputModifiers modifiers)
+{
+    switch (key)
+    {
+        case AvnKeyLeftShift:
+        case AvnKeyRightShift:
+            return (modifiers & Shift) == Shift;
+        
+        case AvnKeyLeftAlt:
+        case AvnKeyRightAlt:
+            return (modifiers & Alt) == Alt;
+            
+        case AvnKeyLeftCtrl:
+        case AvnKeyRightCtrl:
+            return (modifiers & Control) == Control;
+            
+        case AvnKeyLWin:
+        case AvnKeyRWin:
+            return (modifiers & Windows) == Windows;
+            
+        default:
+            return false;
+    }
 }
 
 
@@ -455,7 +483,21 @@ bool WindowOverlayImpl::MonitorKeyEvent(NSEvent* event)
     auto modifiers = WindowOverlayImpl::GetCommandModifier(event.modifierFlags);
     auto key = VirtualKeyFromScanCode(event.keyCode, event.modifierFlags);
     auto timestamp = static_cast<uint64_t>(event.timestamp * 1000);
-    AvnRawKeyEventType type = event.type == NSEventTypeKeyUp ? KeyUp: KeyDown;
+    
+    AvnRawKeyEventType type;
+    if (event.type == NSEventTypeKeyUp)
+    {
+        type = KeyUp;
+    }
+    else if (event.type == NSEventTypeKeyDown)
+    {
+        type = KeyDown;
+    }
+    else // if (event.type == NSEventTypeFlagsChanged)
+    {
+        type = IsKeyDown(key, modifiers) ? KeyDown : KeyUp;
+    }
+    
     return BaseEvents->MonitorKeyEvent(type, timestamp, modifiers, key);
 }
 
