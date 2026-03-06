@@ -1052,6 +1052,29 @@
     }
 }
 
+-(void)overlayWindowDidBecomeMain:(NSNotification *)note
+{
+    NSLog(@"overlayWindowDidBecomeMain");
+    auto windowImpl = _parent.tryGetWithCast<WindowImpl>();
+    if(windowImpl == nullptr){
+        return;
+    }
+
+    windowImpl->WindowEvents->Activated();
+}
+
+// Probably we don't need overlayWindowDidResignKey: method above.
+// This should properly handle deactivating of the overlay
+-(void) overlayWindowDidResignMain:(NSNotification *)note
+{
+    NSLog(@"overlayWindowDidResignMain");
+    auto windowImpl = _parent.tryGetWithCast<WindowImpl>();
+    if(windowImpl == nullptr){
+        return;
+    }
+    windowImpl->WindowEvents->Deactivated();
+}
+
 - (void)colorPanelWillClose:(NSNotification *)notification {
     // Stop the modal session and allow application to continue
     [NSApp stopModal];
