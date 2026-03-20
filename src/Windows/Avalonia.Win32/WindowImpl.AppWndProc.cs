@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
+using System.Linq;
 using System.Runtime.InteropServices;
 using Avalonia.Automation.Peers;
 using Avalonia.Controls;
@@ -8,8 +9,8 @@ using Avalonia.Input;
 using Avalonia.Input.Raw;
 using Avalonia.Threading;
 using Avalonia.Win32.Automation;
+using Avalonia.Win32.Automation.Interop;
 using Avalonia.Win32.Input;
-using Avalonia.Win32.Interop.Automation;
 using static Avalonia.Win32.Interop.UnmanagedMethods;
 
 namespace Avalonia.Win32
@@ -114,9 +115,9 @@ namespace Avalonia.Win32
                         //Window doesn't exist anymore
                         _hwnd = IntPtr.Zero;
                         //Remove root reference to this class, so unmanaged delegate can be collected
-                        s_instances.Remove(this);
+                        lock (s_instances)
+                            s_instances.Remove(this);
 
-                        _mouseDevice.Dispose();
                         _touchDevice.Dispose();
                         //Free other resources
                         Dispose();
@@ -127,7 +128,6 @@ namespace Avalonia.Win32
                     }
 
                 case WindowsMessage.WM_DPICHANGED:
-                    if (!_ignoreDpiChanges)
                     {
                         _dpi = (uint)wParam >> 16;
                         var newDisplayRect = Marshal.PtrToStructure<RECT>(lParam);
@@ -149,7 +149,6 @@ namespace Avalonia.Win32
 
                         return IntPtr.Zero;
                     }
-                    break;
 
                 case WindowsMessage.WM_GETICON:
                     if (_iconImpl == null)
@@ -164,15 +163,16 @@ namespace Avalonia.Win32
                     {
                         requestDpi = _dpi;
                     }
-                                        
+
                     return LoadIcon(requestIcon, requestDpi)?.Handle ?? default;
 
                 case WindowsMessage.WM_KEYDOWN:
+                    e = TryCreateRawKeyEventArgs(RawKeyEventType.KeyDown, timestamp, wParam, lParam, true);
+                    break;
+
                 case WindowsMessage.WM_SYSKEYDOWN:
-                    {
-                        e = TryCreateRawKeyEventArgs(RawKeyEventType.KeyDown, timestamp, wParam, lParam);
-                        break;
-                    }
+                    e = TryCreateRawKeyEventArgs(RawKeyEventType.KeyDown, timestamp, wParam, lParam, false);
+                    break;
 
                 case WindowsMessage.WM_SYSCOMMAND:
                     // Disable system handling of Alt/F10 menu keys.
@@ -187,11 +187,15 @@ namespace Avalonia.Win32
                     }
 
                 case WindowsMessage.WM_KEYUP:
+                    e = TryCreateRawKeyEventArgs(RawKeyEventType.KeyUp, timestamp, wParam, lParam, true);
+                    _ignoreWmChar = false;
+                    break;
+
                 case WindowsMessage.WM_SYSKEYUP:
-                    {
-                        e = TryCreateRawKeyEventArgs(RawKeyEventType.KeyUp, timestamp, wParam, lParam);
-                        break;
-                    }
+                    e = TryCreateRawKeyEventArgs(RawKeyEventType.KeyUp, timestamp, wParam, lParam, false);
+                    _ignoreWmChar = false;
+                    break;
+
                 case WindowsMessage.WM_CHAR:
                     {
                         if (Imm32InputMethod.Current.IsComposing)
@@ -206,7 +210,6 @@ namespace Avalonia.Win32
 
                             e = new RawTextInputEventArgs(WindowsKeyboardDevice.Instance, timestamp, Owner, text);
                         }
-
                         break;
                     }
 
@@ -278,14 +281,6 @@ namespace Avalonia.Win32
                             DipFromLParam(lParam), GetMouseModifiers(wParam));
                         break;
                     }
-                // Mouse capture is lost
-                case WindowsMessage.WM_CANCELMODE:
-                    if (!IsMouseInPointerEnabled)
-                    {
-                        _mouseDevice.Capture(null);
-                    }
-
-                    break;
 
                 case WindowsMessage.WM_MOUSEMOVE:
                     {
@@ -392,6 +387,27 @@ namespace Avalonia.Win32
                         break;
                     }
 
+                // covers WM_CANCELMODE which sends WM_CAPTURECHANGED in DefWindowProc
+                case WindowsMessage.WM_CAPTURECHANGED:
+                    {
+                        if (IsMouseInPointerEnabled)
+                        {
+                            break;
+                        }
+                        if (!IsOurWindow(lParam))
+                        {
+                            _trackingMouse = false;
+                            e = new RawPointerEventArgs(
+                                _mouseDevice,
+                                timestamp,
+                                Owner,
+                                RawPointerEventType.CancelCapture,
+                                new Point(-1, -1),
+                                WindowsKeyboardDevice.Instance.Modifiers);
+                        }
+                        break;
+                    }
+
                 case WindowsMessage.WM_NCLBUTTONDOWN:
                 case WindowsMessage.WM_NCRBUTTONDOWN:
                 case WindowsMessage.WM_NCMBUTTONDOWN:
@@ -436,6 +452,38 @@ namespace Avalonia.Win32
                         {
                             foreach (var touchInput in touchInputs)
                             {
+                                var position = PointToClient(new PixelPoint(touchInput.X / 100, touchInput.Y / 100));
+                                var rawPointerPoint = new RawPointerPoint()
+                                {
+                                    Position = position,
+                                };
+
+                                // Try to get the touch width and height.
+                                // See https://learn.microsoft.com/en-us/windows/win32/api/winuser/ns-winuser-touchinput
+                                // > The width of the touch contact area in hundredths of a pixel in physical screen coordinates. This value is only valid if the dwMask member has the TOUCHEVENTFMASK_CONTACTAREA flag set.
+                                const int TOUCHEVENTFMASK_CONTACTAREA = 0x0004; // Known as TOUCHINPUTMASKF_CONTACTAREA in the docs.
+                                if ((touchInput.Mask & TOUCHEVENTFMASK_CONTACTAREA) != 0)
+                                {
+                                    var centerX = touchInput.X / 100.0;
+                                    var centerY = touchInput.Y / 100.0;
+
+                                    var rightX = centerX + touchInput.CxContact / 100.0 /
+                                        2 /*The center X add the half width is the right X*/;
+                                    var bottomY = centerY + touchInput.CyContact / 100.0 /
+                                        2 /*The center Y add the half height is the bottom Y*/;
+
+                                    var bottomRightPixelPoint =
+                                        new PixelPoint((int)rightX, (int)bottomY);
+                                    var bottomRightPosition = PointToClient(bottomRightPixelPoint);
+
+                                    var centerPosition = position;
+                                    var halfWidth = bottomRightPosition.X - centerPosition.X;
+                                    var halfHeight = bottomRightPosition.Y - centerPosition.Y;
+                                    var leftTopPosition = new Point(centerPosition.X - halfWidth, centerPosition.Y - halfHeight);
+
+                                    rawPointerPoint.ContactRect = new Rect(leftTopPosition, bottomRightPosition);
+                                }
+
                                 input.Invoke(new RawTouchEventArgs(_touchDevice, touchInput.Time,
                                     Owner,
                                     touchInput.Flags.HasAllFlags(TouchInputFlags.TOUCHEVENTF_UP) ?
@@ -443,7 +491,7 @@ namespace Avalonia.Win32
                                         touchInput.Flags.HasAllFlags(TouchInputFlags.TOUCHEVENTF_DOWN) ?
                                             RawPointerEventType.TouchBegin :
                                             RawPointerEventType.TouchUpdate,
-                                    PointToClient(new PixelPoint(touchInput.X / 100, touchInput.Y / 100)),
+                                    rawPointerPoint,
                                     WindowsKeyboardDevice.Instance.Modifiers,
                                     touchInput.Id));
                             }
@@ -734,7 +782,7 @@ namespace Avalonia.Win32
                     {
                         LostFocus?.Invoke();
                     }
-                   
+
                     break;
 
                 case WindowsMessage.WM_INPUTLANGCHANGE:
@@ -837,7 +885,7 @@ namespace Avalonia.Win32
                         // is handled.
                         _ignoreWmChar = e.Handled;
                     }
-                 }
+                }
 
                 if (s_intermediatePointsPooledList.Count > 0)
                 {
@@ -851,6 +899,22 @@ namespace Avalonia.Win32
             }
 
             return DefWindowProc(hWnd, msg, wParam, lParam);
+        }
+
+        internal bool IsOurWindow(IntPtr hwnd)
+        {
+            if (hwnd == IntPtr.Zero)
+                return false;
+
+            if (hwnd == _hwnd)
+                return true;
+
+            lock (s_instances)
+                for (int i = 0; i < s_instances.Count; i++)
+                    if (s_instances[i]._hwnd == hwnd)
+                        return true;
+
+            return false;
         }
 
         private void OnShowHideMessage(bool shown)
@@ -920,7 +984,8 @@ namespace Avalonia.Win32
             return null;
         }
 
-        private unsafe IReadOnlyList<RawPointerPoint> CreateIntermediatePoints(MOUSEMOVEPOINT movePoint, MOUSEMOVEPOINT prevMovePoint)
+        private unsafe IReadOnlyList<RawPointerPoint> CreateIntermediatePoints(MOUSEMOVEPOINT movePoint,
+            MOUSEMOVEPOINT prevMovePoint)
         {
             // To understand some of this code, please check MS docs:
             // https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-getmousemovepointsex#remarks
@@ -931,6 +996,7 @@ namespace Avalonia.Win32
             {
                 var movePointCopy = movePoint;
                 movePointCopy.time = 0; // empty "time" as otherwise WinAPI will always fail
+
                 int pointsCount = GetMouseMovePointsEx(
                     (uint)(Marshal.SizeOf(movePointCopy)),
                     &movePointCopy, movePoints, s_mouseHistoryInfos.Length,
@@ -938,47 +1004,46 @@ namespace Avalonia.Win32
 
                 // GetMouseMovePointsEx can return -1 if point wasn't found or there is so beeg delay that original points were erased from the buffer.
                 if (pointsCount <= 1)
-                {
                     return Array.Empty<RawPointerPoint>();
-                }
 
                 s_intermediatePointsPooledList.Clear();
-                s_intermediatePointsPooledList.Capacity = pointsCount;
-                for (int i = pointsCount - 1; i >= 1; i--)
+                s_sortedPoints.Clear();
+
+                s_sortedPoints.Capacity = pointsCount;
+
+                for (int i = 0; i < pointsCount; i++)
                 {
-                    var historyInfo = s_mouseHistoryInfos[i];
-                    // Skip points newer than current point.
-                    if (historyInfo.time > movePoint.time ||
-                        (historyInfo.time == movePoint.time &&
-                         historyInfo.x == movePoint.x &&
-                         historyInfo.y == movePoint.y))
-                    {
+                    var mp = movePoints[i];
+
+                    var x = mp.x > 32767 ? mp.x - 65536 : mp.x;
+                    var y = mp.y > 32767 ? mp.y - 65536 : mp.y;
+
+                    if(mp.time <= prevMovePoint.time || mp.time >= movePoint.time)
                         continue;
-                    }
-                    // Skip points older from previous WM_MOUSEMOVE point.
-                    if (historyInfo.time < prevMovePoint.time ||
-                        (historyInfo.time == prevMovePoint.time &&
-                            historyInfo.x == prevMovePoint.x &&
-                            historyInfo.y == prevMovePoint.y))
+
+                    s_sortedPoints.Add(new InternalPoint
                     {
-                        continue;
-                    }
-
-                    // To support multiple screens.
-                    if (historyInfo.x > 32767)
-                        historyInfo.x -= 65536;
-
-                    if (historyInfo.y > 32767)
-                        historyInfo.y -= 65536;
-
-                    var point = PointToClient(new PixelPoint(historyInfo.x, historyInfo.y));
-                    s_intermediatePointsPooledList.Add(new RawPointerPoint
-                    {
-                        Position = point
+                        Time = mp.time,
+                        Pt = new PixelPoint(x, y)
                     });
                 }
+
+                // sorting is required to ensure points are in order from oldest to newest
+                s_sortedPoints.Sort(static (a, b) => a.Time.CompareTo(b.Time));
+
+                foreach (var p in s_sortedPoints)
+                {
+                    var client = PointToClient(p.Pt);
+
+                    s_intermediatePointsPooledList.Add(new RawPointerPoint
+                    {
+                        Position = client
+                    });
+                }
+
                 return s_intermediatePointsPooledList;
             }
+
         }
 
         private RawPointerEventArgs CreatePointerArgs(IInputDevice device, ulong timestamp, RawPointerEventType eventType, RawPointerPoint point, RawInputModifiers modifiers, uint rawPointerId)
@@ -1051,20 +1116,42 @@ namespace Avalonia.Win32
         }
         private RawPointerPoint CreateRawPointerPoint(POINTER_TOUCH_INFO info)
         {
-            var pointerInfo = info.pointerInfo;
-            var point = PointToClient(new PixelPoint(pointerInfo.ptPixelLocationX, pointerInfo.ptPixelLocationY));
-            return new RawPointerPoint
+            var himetricLocation = GetHimetricLocation(info.pointerInfo);
+            var point = PointToClient(himetricLocation);
+
+            var pointerPoint = new RawPointerPoint
             {
                 Position = point,
                 // POINTER_PEN_INFO.pressure is normalized to a range between 0 and 1024, with 512 as a default.
                 // But in our API we use range from 0.0 to 1.0.
-                Pressure = info.pressure / 1024f
+                Pressure = info.pressure / 1024f,
             };
+
+            // See https://learn.microsoft.com/en-us/windows/win32/inputmsg/touch-mask-constants
+            // > TOUCH_MASK_CONTACTAREA: rcContact of the POINTER_TOUCH_INFO structure is valid.
+            if ((info.touchMask & TouchMask.TOUCH_MASK_CONTACTAREA) != 0)
+            {
+                // See https://learn.microsoft.com/en-us/windows/win32/api/winuser/ns-winuser-pointer_touch_info
+                // > The predicted screen coordinates of the contact area, in pixels. By default, if the device does not report a contact area, this field defaults to a 0-by-0 rectangle centered around the pointer location.
+                var leftTopPixelPoint =
+                    new PixelPoint(info.rcContactLeft, info.rcContactTop);
+                var leftTopPosition = PointToClient(leftTopPixelPoint);
+
+                var bottomRightPixelPoint =
+                    new PixelPoint(info.rcContactRight, info.rcContactBottom);
+                var bottomRightPosition = PointToClient(bottomRightPixelPoint);
+
+                // Why not use ptPixelLocationX and ptPixelLocationY to as leftTopPosition?
+                // Because ptPixelLocationX and ptPixelLocationY will be the center of the contact area.
+                pointerPoint.ContactRect = new Rect(leftTopPosition, bottomRightPosition);
+            }
+
+            return pointerPoint;
         }
         private RawPointerPoint CreateRawPointerPoint(POINTER_PEN_INFO info)
         {
-            var pointerInfo = info.pointerInfo;
-            var point = PointToClient(new PixelPoint(pointerInfo.ptPixelLocationX, pointerInfo.ptPixelLocationY));
+            var himetricLocation = GetHimetricLocation(info.pointerInfo);
+            var point = PointToClient(himetricLocation);
             return new RawPointerPoint
             {
                 Position = point,
@@ -1130,6 +1217,20 @@ namespace Avalonia.Win32
             _langid = langid;
 
             Imm32InputMethod.Current.SetLanguageAndWindow(this, Hwnd, hkl);
+        }
+
+        /// <summary>
+        /// Get the location of the pointer in himetric units.
+        /// </summary>
+        /// <param name="info">The pointer info.</param>
+        /// <returns>The location of the pointer in himetric units.</returns>
+        private Point GetHimetricLocation(POINTER_INFO info)
+        {
+            GetPointerDeviceRects(info.sourceDevice, out var pointerDeviceRect, out var displayRect);
+            var himetricLocation = new Point(
+                info.ptHimetricLocationRawX * displayRect.Width / (double)pointerDeviceRect.Width + displayRect.left,
+                info.ptHimetricLocationRawY * displayRect.Height / (double)pointerDeviceRect.Height + displayRect.top);
+            return himetricLocation;
         }
 
         private static int ToInt32(IntPtr ptr)
@@ -1234,13 +1335,16 @@ namespace Avalonia.Win32
             return modifiers;
         }
 
-        private RawKeyEventArgs? TryCreateRawKeyEventArgs(RawKeyEventType eventType, ulong timestamp, IntPtr wParam, IntPtr lParam)
+        private RawKeyEventArgs? TryCreateRawKeyEventArgs(RawKeyEventType eventType, ulong timestamp, IntPtr wParam, IntPtr lParam, bool useKeySymbol)
         {
             var virtualKey = ToInt32(wParam);
             var keyData = ToInt32(lParam);
             var key = KeyInterop.KeyFromVirtualKey(virtualKey, keyData);
             var physicalKey = KeyInterop.PhysicalKeyFromVirtualKey(virtualKey, keyData);
-            var keySymbol = KeyInterop.GetKeySymbol(virtualKey, keyData);
+
+            // Avoid calling GetKeySymbol() for WM_SYSKEYDOWN/UP:
+            // it ultimately calls User32!ToUnicodeEx, which messes up the keyboard state in this case.
+            var keySymbol = useKeySymbol ? KeyInterop.GetKeySymbol(virtualKey, keyData) : null;
 
             if (key == Key.None && physicalKey == PhysicalKey.None && string.IsNullOrWhiteSpace(keySymbol))
                 return null;

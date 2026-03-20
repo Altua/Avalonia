@@ -392,6 +392,89 @@ namespace Avalonia.Markup.Xaml.UnitTests
             Assert.Equal(RuntimeXamlDiagnosticSeverity.Warning, warning.Severity);
             Assert.StartsWith("Duplicate setter encountered for property 'Height'", warning.Title);
         }
+
+        [Fact]
+        public void Item_Container_Inside_Of_ItemTemplate_Should_Be_Warned()
+        {
+            using var _ = UnitTestApplication.Start(TestServices.StyledWindow);
+
+            var xaml = new RuntimeXamlLoaderDocument(@"
+<ListBox xmlns='https://github.com/avaloniaui'
+         xmlns:x='http://schemas.microsoft.com/winfx/2006/xaml'>
+    <ListBox.ItemTemplate>
+        <DataTemplate>
+            <ListBoxItem />
+        </DataTemplate>
+    </ListBox.ItemTemplate>
+</ListBox>");
+            var diagnostics = new List<RuntimeXamlDiagnostic>();
+            // We still have a runtime check in the StyleInstance class, but in this test we only care about compile warnings.
+            var listBox = (ListBox)AvaloniaRuntimeXamlLoader.Load(xaml, new RuntimeXamlLoaderConfiguration
+            {
+                DiagnosticHandler = diagnostic =>
+                {
+                    diagnostics.Add(diagnostic);
+                    return diagnostic.Severity;
+                }
+            });
+            // ItemTemplate should still work as before, creating whatever object user put inside
+            Assert.IsType<ListBoxItem>(listBox.ItemTemplate!.Build(null));
+
+            // But invalid usage should be warned:
+            var warning = Assert.Single(diagnostics);
+            Assert.Equal(RuntimeXamlDiagnosticSeverity.Warning, warning.Severity);
+            Assert.Equal("AVLN2208", warning.Id);
+        }
+
+        [Fact]
+        public void Item_Container_Inside_Of_DataTemplates_Should_Be_Warned()
+        {
+            using var _ = UnitTestApplication.Start(TestServices.StyledWindow);
+
+            var xaml = new RuntimeXamlLoaderDocument(@"
+<TabControl xmlns='https://github.com/avaloniaui'
+         xmlns:x='http://schemas.microsoft.com/winfx/2006/xaml'>
+    <TabControl.DataTemplates>
+        <DataTemplate x:DataType='x:Object'>
+            <TabItem />
+        </DataTemplate>
+    </TabControl.DataTemplates>
+</TabControl>");
+            var diagnostics = new List<RuntimeXamlDiagnostic>();
+            // We still have a runtime check in the StyleInstance class, but in this test we only care about compile warnings.
+            var tabControl = (TabControl)AvaloniaRuntimeXamlLoader.Load(xaml, new RuntimeXamlLoaderConfiguration
+            {
+                DiagnosticHandler = diagnostic =>
+                {
+                    diagnostics.Add(diagnostic);
+                    return diagnostic.Severity;
+                }
+            });
+            // ItemTemplate should still work as before, creating whatever object user put inside
+            Assert.IsType<TabItem>(tabControl.DataTemplates[0]!.Build(null));
+
+            // But invalid usage should be warned:
+            var warning = Assert.Single(diagnostics);
+            Assert.Equal(RuntimeXamlDiagnosticSeverity.Warning, warning.Severity);
+            Assert.Equal("AVLN2208", warning.Id);
+        }
+        
+        [Fact]
+        public void Type_Converters_Should_Work_When_Specified_With_Attributes_On_Avalonia_Properties()
+        {
+            using (UnitTestApplication.Start(TestServices.StyledWindow))
+            {
+
+                var parsed = (XamlIlClassWithTypeConverterOnAvaloniaProperty)
+                    AvaloniaRuntimeXamlLoader.Parse(@"
+<XamlIlClassWithTypeConverterOnAvaloniaProperty
+    xmlns='clr-namespace:Avalonia.Markup.Xaml.UnitTests;assembly=Avalonia.Markup.Xaml.UnitTests' 
+    MyProp='a,b,c'/>",
+                        typeof(XamlIlBugTestsEventHandlerCodeBehind).Assembly);
+            
+                Assert.Equal((IEnumerable<string>)["a", "b", "c"], parsed.MyProp.Select(x => x.Value));
+            }
+        }
     }
 
     public class XamlIlBugTestsEventHandlerCodeBehind : Window
@@ -487,5 +570,39 @@ namespace Avalonia.Markup.Xaml.UnitTests
     public class XamlIlClassWithClrPropertyWithValue
     {
         public int Count { get; set; }= 5;
+    }
+
+    public class XamlIlClassWithTypeConverterOnAvaloniaProperty : AvaloniaObject
+    {
+        public class MyType(string value)
+        {
+            public string Value => value;
+        }
+        
+        public class MyTypeConverter : TypeConverter
+        {
+            public override bool CanConvertFrom(ITypeDescriptorContext context, Type sourceType)
+            {
+                return sourceType == typeof(string);
+            }
+
+            public override object ConvertFrom(ITypeDescriptorContext context, CultureInfo culture, object value)
+            {
+                if (value is string s)
+                    return s.Split([','], StringSplitOptions.RemoveEmptyEntries).Select(x => new MyType(x.Trim()));
+                return base.ConvertFrom(context, culture, value);
+            }
+        }
+
+        public static readonly StyledProperty<IEnumerable<MyType>> MyPropProperty = AvaloniaProperty.Register<XamlIlClassWithTypeConverterOnAvaloniaProperty, IEnumerable<MyType>>(
+            "MyProp");
+
+        [TypeConverter(typeof(MyTypeConverter))]
+        public IEnumerable<MyType> MyProp
+        {
+            get => GetValue(MyPropProperty);
+            set => SetValue(MyPropProperty, value);
+        }
+        
     }
 }

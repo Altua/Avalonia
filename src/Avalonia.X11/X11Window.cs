@@ -30,8 +30,6 @@ using Avalonia.Platform.Storage.FileIO;
 // ReSharper disable IdentifierTypo
 // ReSharper disable StringLiteralTypo
 
-#nullable enable
-
 namespace Avalonia.X11
 {
     internal unsafe partial class X11Window : IWindowImpl, IPopupImpl, IXI2Client,
@@ -46,6 +44,7 @@ namespace Avalonia.X11
         private bool _triggeredExpose;
         private IInputRoot? _inputRoot;
         private readonly MouseDevice _mouse;
+        private readonly PenDevice _pen;
         private readonly TouchDevice _touch;
         private readonly IKeyboardDevice _keyboard;
         private readonly ITopLevelNativeMenuExporter? _nativeMenuExporter;
@@ -65,6 +64,7 @@ namespace Avalonia.X11
         private double? _scalingOverride;
         private bool _disabled;
         private TransparencyHelper? _transparencyHelper;
+        private WindowActivationTrackingHelper? _activationTracker;
         private RawEventGrouper? _rawEventGrouper;
         private bool _useRenderWindow = false;
         private bool _useCompositorDrivenRenderWindowResize = false;
@@ -95,9 +95,10 @@ namespace Avalonia.X11
             _mode = mode;
             _mode.Init(this);
             _popup = popupParent != null;
-			_overrideRedirect = _popup || overrideRedirect;
+            _overrideRedirect = _popup || overrideRedirect;
             _x11 = platform.Info;
-            _mouse = new MouseDevice();
+            _mouse = Avalonia.Input.MouseDevice.Primary;
+            _pen = new PenDevice();
             _touch = new TouchDevice();
             _keyboard = platform.KeyboardDevice;
 
@@ -170,15 +171,20 @@ namespace Avalonia.X11
                 (int)CreateWindowArgs.InputOutput, 
                 visual,
                 new UIntPtr((uint)valueMask), ref attr);
+            AppendPid(_handle);
 
             if (_useRenderWindow)
+            {
                 _renderHandle = XCreateWindow(_x11.Display, _handle, 0, 0, defaultWidth, defaultHeight, 0, depth,
                     (int)CreateWindowArgs.InputOutput,
                     visual,
                     new UIntPtr((uint)(SetWindowValuemask.BorderPixel | SetWindowValuemask.BitGravity |
                                        SetWindowValuemask.WinGravity | SetWindowValuemask.BackingStore)), ref attr);
+            }
             else
+            {
                 _renderHandle = _handle;
+            }
 
             Handle = new PlatformHandle(_handle, "XID");
 
@@ -227,6 +233,9 @@ namespace Avalonia.X11
             
             _transparencyHelper = new TransparencyHelper(_x11, _handle, platform.Globals);
             _transparencyHelper.SetTransparencyRequest(Array.Empty<WindowTransparencyLevel>());
+
+            _activationTracker = new(_platform, this);
+            _activationTracker.ActivationChanged += HandleActivation;
 
             CreateIC();
 
@@ -309,21 +318,27 @@ namespace Avalonia.X11
                 || _systemDecorations == SystemDecorations.None) 
                 decorations = 0;
 
-            if (!_canResize || !IsEnabled)
-            {
-                functions &= ~(MotifFunctions.Resize | MotifFunctions.Maximize);
-                decorations &= ~(MotifDecorations.Maximize | MotifDecorations.ResizeH);
-            }
-            if (!IsEnabled)
-            {
-                functions &= ~(MotifFunctions.Resize | MotifFunctions.Minimize);
+            var isDisabled = !IsEnabled;
 
-                UpdateSizeHints(null, true);
-            }
-            else
+            if (!_canResize || isDisabled)
             {
-                UpdateSizeHints(null);
+                functions &= ~MotifFunctions.Resize;
+                decorations &= ~MotifDecorations.ResizeH;
             }
+
+            if (!_canMinimize || isDisabled)
+            {
+                functions &= ~MotifFunctions.Minimize;
+                decorations &= ~MotifDecorations.Minimize;
+            }
+
+            if (!_canMaximize || isDisabled)
+            {
+                functions &= ~MotifFunctions.Maximize;
+                decorations &= ~MotifDecorations.Maximize;
+            }
+
+            UpdateSizeHints(null, isDisabled);
 
             var hints = new MotifWmHints
             {
@@ -335,6 +350,55 @@ namespace Avalonia.X11
             XChangeProperty(_x11.Display, _handle,
                 _x11.Atoms._MOTIF_WM_HINTS, _x11.Atoms._MOTIF_WM_HINTS, 32,
                 PropertyMode.Replace, ref hints, 5);
+        }
+
+        /// <summary>
+        /// Append `_NET_WM_PID` atom to X11 window
+        /// </summary>
+        /// <param name="windowXId"></param>
+        private void AppendPid(IntPtr windowXId)
+        {
+            // See https://github.com/AvaloniaUI/Avalonia/issues/17444
+            var pid = (uint)s_pid;
+            // The type of `_NET_WM_PID` is `CARDINAL` which is 32-bit unsigned integer, see https://specifications.freedesktop.org/wm-spec/1.3/ar01s05.html
+            XChangeProperty(_x11.Display, windowXId,
+                _x11.Atoms._NET_WM_PID, _x11.Atoms.XA_CARDINAL, 32,
+                PropertyMode.Replace, ref pid, 1);
+
+            const int maxLength = 1024;
+            var name = stackalloc byte[maxLength];
+            var result = gethostname(name, maxLength);
+            if (result != 0)
+            {
+                // Fail
+                return;
+            }
+
+            var length = 0;
+            while (length < maxLength && name[length] != 0)
+            {
+                length++;
+            }
+
+            XChangeProperty(_x11.Display, windowXId,
+                _x11.Atoms.XA_WM_CLIENT_MACHINE, _x11.Atoms.XA_STRING, 8,
+                PropertyMode.Replace, name, length);
+        }
+
+        [DllImport("libc")]
+        private static extern int gethostname(byte* name, int len);
+
+        private static readonly int s_pid = GetProcessId();
+
+        private static int GetProcessId()
+        {
+#if NET6_0_OR_GREATER
+            var pid = Environment.ProcessId;
+#else
+            using var currentProcess = Process.GetCurrentProcess();
+            var pid = currentProcess.Id;
+#endif
+            return pid;
         }
 
         private void UpdateSizeHints(PixelSize? preResize, bool forceDisableResize = false)
@@ -458,6 +522,8 @@ namespace Avalonia.X11
             if(_mode.OnEvent(ref ev))
                 return;
 
+            _activationTracker?.OnEvent(ref ev);
+
             if (ev.type == XEventName.MapNotify)
             {
                 _mapped = true;
@@ -471,24 +537,6 @@ namespace Avalonia.X11
                       ev.VisibilityEvent.state < 2))
             {
                 EnqueuePaint();
-            }
-            else if (ev.type == XEventName.FocusIn)
-            {
-                if (ActivateTransientChildIfNeeded())
-                    return;
-                // See: https://github.com/fltk/fltk/issues/295
-                if ((NotifyMode)ev.FocusChangeEvent.mode is not NotifyMode.NotifyNormal)
-                    return;
-                Activated?.Invoke();
-                _imeControl?.SetWindowActive(true);
-            }
-            else if (ev.type == XEventName.FocusOut)
-            {
-                // See: https://github.com/fltk/fltk/issues/295
-                if ((NotifyMode)ev.FocusChangeEvent.mode is not NotifyMode.NotifyNormal)
-                    return;
-                _imeControl?.SetWindowActive(false);
-                Deactivated?.Invoke();
             }
             else if (ev.type == XEventName.MotionNotify)
                 MouseEvent(RawPointerEventType.Move, ref ev, ev.MotionEvent.state);
@@ -627,6 +675,22 @@ namespace Avalonia.X11
             }
         }
 
+        private void HandleActivation(bool active)
+        {
+            if (active)
+            {
+                if (ActivateTransientChildIfNeeded())
+                    return;
+                Activated?.Invoke();
+                _imeControl?.SetWindowActive(true);
+            }
+            else
+            {
+                _imeControl?.SetWindowActive(false);
+                Deactivated?.Invoke();
+            }
+        }
+
         private Thickness? GetFrameExtents()
         {
             if (_systemDecorations != SystemDecorations.Full)
@@ -721,58 +785,56 @@ namespace Avalonia.X11
             }
         }
 
-        private void OnPropertyChange(IntPtr atom, bool hasValue)
+        private void OnPropertyChange(IntPtr property, bool hasValue)
         {
-            if (atom == _x11.Atoms._NET_FRAME_EXTENTS)
+            if (property == _x11.Atoms._NET_FRAME_EXTENTS)
             {
                 // Occurs once the window has been mapped, which is the earliest the extents
                 // can be retrieved, so invoke event to force update of TopLevel.FrameSize.
                 Resized?.Invoke(ClientSize, WindowResizeReason.Unspecified);
             }
 
-            if (atom == _x11.Atoms._NET_WM_STATE)
+            if (property == _x11.Atoms._NET_WM_STATE)
             {
                 WindowState state = WindowState.Normal;
-                if(hasValue)
+                var atoms = hasValue
+                    ? XGetWindowPropertyAsIntPtrArray(_x11.Display, _handle, _x11.Atoms._NET_WM_STATE,
+                          (IntPtr)Atom.XA_ATOM)
+                      ?? []
+                    : [];
+                int maximized = 0;
+                foreach (var atom in atoms)
                 {
-
-                    XGetWindowProperty(_x11.Display, _handle, _x11.Atoms._NET_WM_STATE, IntPtr.Zero, new IntPtr(256),
-                        false, (IntPtr)Atom.XA_ATOM, out _, out _, out var nitems, out _,
-                        out var prop);
-                    int maximized = 0;
-                    var pitems = (IntPtr*)prop.ToPointer();
-                    for (var c = 0; c < nitems.ToInt32(); c++)
+                    if (atom == _x11.Atoms._NET_WM_STATE_HIDDEN)
                     {
-                        if (pitems[c] == _x11.Atoms._NET_WM_STATE_HIDDEN)
-                        {
-                            state = WindowState.Minimized;
-                            break;
-                        }
+                        state = WindowState.Minimized;
+                        break;
+                    }
 
-                        if(pitems[c] == _x11.Atoms._NET_WM_STATE_FULLSCREEN)
-                        {
-                            state = WindowState.FullScreen;
-                            break;
-                        }
+                    if(atom == _x11.Atoms._NET_WM_STATE_FULLSCREEN)
+                    {
+                        state = WindowState.FullScreen;
+                        break;
+                    }
 
-                        if (pitems[c] == _x11.Atoms._NET_WM_STATE_MAXIMIZED_HORZ ||
-                            pitems[c] == _x11.Atoms._NET_WM_STATE_MAXIMIZED_VERT)
+                    if (atom == _x11.Atoms._NET_WM_STATE_MAXIMIZED_HORZ ||
+                        atom == _x11.Atoms._NET_WM_STATE_MAXIMIZED_VERT)
+                    {
+                        maximized++;
+                        if (maximized == 2)
                         {
-                            maximized++;
-                            if (maximized == 2)
-                            {
-                                state = WindowState.Maximized;
-                                break;
-                            }
+                            state = WindowState.Maximized;
+                            break;
                         }
                     }
-                    XFree(prop);
                 }
                 if (_lastWindowState != state)
                 {
                     _lastWindowState = state;
                     WindowStateChanged?.Invoke(state);
                 }
+
+                _activationTracker?.OnNetWmStateChanged(atoms);
             }
 
         }
@@ -803,6 +865,8 @@ namespace Avalonia.X11
         
         private SystemDecorations _systemDecorations = SystemDecorations.Full;
         private bool _canResize = true;
+        private bool _canMinimize = true;
+        private bool _canMaximize = true;
         private const int MaxWindowDimension = 100000;
 
         private (Size minSize, Size maxSize) _scaledMinMaxSize =
@@ -978,6 +1042,12 @@ namespace Avalonia.X11
                 _rawEventGrouper = null;
             }
             
+            if (_activationTracker != null)
+            {
+                _activationTracker.Dispose();
+                _activationTracker = null;
+            }
+            
             if (_transparencyHelper != null)
             {
                 _transparencyHelper.Dispose();
@@ -1009,7 +1079,7 @@ namespace Avalonia.X11
                 _platform.XI2?.OnWindowDestroyed(_handle);
                 var handle = _handle;
                 _handle = IntPtr.Zero;
-                _mouse.Dispose();
+                _pen.Dispose();
                 _touch.Dispose();
                 if (!fromDestroyNotification) 
                     XDestroyWindow(_x11.Display, handle);
@@ -1023,7 +1093,7 @@ namespace Avalonia.X11
             }
         }
 
-        private bool ActivateTransientChildIfNeeded()
+        internal bool ActivateTransientChildIfNeeded()
         {
             if (_disabled)
             {
@@ -1107,6 +1177,18 @@ namespace Avalonia.X11
             UpdateSizeHints(null);
         }
 
+        public void SetCanMinimize(bool value)
+        {
+            _canMinimize = value;
+            UpdateMotifHints();
+        }
+
+        public void SetCanMaximize(bool value)
+        {
+            _canMaximize = value;
+            UpdateMotifHints();
+        }
+
         public void SetCursor(ICursorImpl? cursor)
         {
             if (cursor == null)
@@ -1164,6 +1246,7 @@ namespace Avalonia.X11
         }
 
         public IMouseDevice MouseDevice => _mouse;
+        public IPenDevice PenDevice => _pen;
         public TouchDevice TouchDevice => _touch;
 
         public IPopupImpl? CreatePopup() 
@@ -1190,10 +1273,10 @@ namespace Avalonia.X11
                     ptr1 = l0,
                     ptr2 = l1 ?? IntPtr.Zero,
                     ptr3 = l2 ?? IntPtr.Zero,
-                    ptr4 = l3 ?? IntPtr.Zero
+                    ptr4 = l3 ?? IntPtr.Zero,
+                    ptr5 = l4 ?? IntPtr.Zero
                 }
             };
-            xev.ClientMessageEvent.ptr4 = l4 ?? IntPtr.Zero;
             XSendEvent(_x11.Display, _x11.RootWindow, false,
                 new IntPtr((int)(EventMask.SubstructureRedirectMask | EventMask.SubstructureNotifyMask)), ref xev);
 
@@ -1256,7 +1339,7 @@ namespace Avalonia.X11
             }
         }
 
-        public void SetWmClass(IntPtr handle, string wmClass)
+        public void SetWmClass(IntPtr handle, string? wmClass)
         {
             // See https://tronche.com/gui/x/icccm/sec-4.html#WM_CLASS
             // We don't actually parse the application's command line, so we only use RESOURCE_NAME and argv[0]
@@ -1304,11 +1387,6 @@ namespace Avalonia.X11
         public void SetTopmost(bool value)
         {
             ChangeWMAtoms(value, _x11.Atoms._NET_WM_STATE_ABOVE);
-        }
-
-        public void SetIgnoreMouseEvents(bool ignore)
-        {
-            // Not currently supported on X11 backend.
         }
         
         public void SetEnabled(bool enable)
@@ -1401,14 +1479,10 @@ namespace Avalonia.X11
 
             if (!_mapped)
             {
-                XGetWindowProperty(_x11.Display, _handle, _x11.Atoms._NET_WM_STATE, IntPtr.Zero, new IntPtr(256),
-                    false, (IntPtr)Atom.XA_ATOM, out _, out _, out var nitems, out _,
-                    out var prop);
-                var ptr = (IntPtr*)prop.ToPointer();
-                var newAtoms = new HashSet<IntPtr>();
-                for (var c = 0; c < nitems.ToInt64(); c++) 
-                    newAtoms.Add(*(ptr+c));
-                XFree(prop);
+                var newAtoms = new HashSet<IntPtr>(XGetWindowPropertyAsIntPtrArray(_x11.Display, _handle,
+                    _x11.Atoms._NET_WM_STATE,
+                    (IntPtr)Atom.XA_ATOM) ?? []);
+                
                 foreach(var atom in atoms)
                     if (enable)
                         newAtoms.Add(atom);

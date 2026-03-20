@@ -7,7 +7,9 @@ using Xunit;
 using Avalonia.Animation.Easings;
 using System.Threading;
 using System.Reactive.Linq;
+using Avalonia.Data;
 using Avalonia.Layout;
+using Avalonia.UnitTests;
 
 namespace Avalonia.Base.UnitTests.Animation
 {
@@ -317,7 +319,7 @@ namespace Avalonia.Base.UnitTests.Animation
         }
 
         [Fact]
-        public void Cancellation_Should_Stop_Animation()
+        public async Task Cancellation_Should_Stop_Animation()
         {
             var keyframe1 = new KeyFrame()
             {
@@ -364,7 +366,7 @@ namespace Avalonia.Base.UnitTests.Animation
             clock.Step(TimeSpan.FromSeconds(2));
             clock.Step(TimeSpan.FromSeconds(3));
 
-            animationRun.Wait();
+            await animationRun;
 
             clock.Step(TimeSpan.FromSeconds(6));
             Assert.True(animationRun.IsCompleted);
@@ -404,7 +406,7 @@ namespace Avalonia.Base.UnitTests.Animation
         }
 
         [Fact]
-        public void Cancellation_Of_Completed_Animation_Does_Not_Fail()
+        public async Task Cancellation_Of_Completed_Animation_Does_Not_Fail()
         {
             var keyframe1 = new KeyFrame()
             {
@@ -450,12 +452,12 @@ namespace Avalonia.Base.UnitTests.Animation
             Assert.Equal(2, propertyChangedCount);
 
             cancellationTokenSource.Cancel();
-            animationRun.Wait();
+            await animationRun;
         }
 
         // https://github.com/AvaloniaUI/Avalonia/issues/12582
         [Fact]
-        public void Interpolator_Is_Not_Called_After_Last_Iteration()
+        public async Task Interpolator_Is_Not_Called_After_Last_Iteration()
         {
             var animator = new FakeAnimator();
 
@@ -511,7 +513,7 @@ namespace Avalonia.Base.UnitTests.Animation
             Assert.Equal(3, animator.CallCount);
             Assert.Equal(1.0d, animator.LastProgress);
 
-            animationRun.Wait();
+            await animationRun;
         }
 
         [Theory]
@@ -602,6 +604,110 @@ namespace Avalonia.Base.UnitTests.Animation
             clock.Step(TimeSpan.Zero);
             clock.Step(TimeSpan.FromSeconds(cue));
             Assert.Equal(100.0, border.Width);
+        }
+
+        [Fact]
+        public void Animation_Completes_Gracefully_When_First_KeyFrame_Value_Is_Null()
+        {
+            var clock = new MockGlobalClock();
+            var services = new TestServices(globalClock: clock);
+
+            using (UnitTestApplication.Start(services))
+            {
+                var nullBinding = new Binding("NonExistentProperty");
+
+                var animation = new Animation
+                {
+                    Duration = TimeSpan.FromSeconds(1),
+                    FillMode = FillMode.Both,
+                    Children =
+                    {
+                        new KeyFrame
+                        {
+                            KeyTime = TimeSpan.FromSeconds(0),
+                            Setters = { new Setter(Layoutable.WidthProperty, nullBinding) }
+                        },
+                        new KeyFrame
+                        {
+                            KeyTime = TimeSpan.FromSeconds(1),
+                            Setters = { new Setter(Layoutable.WidthProperty, 200d) }
+                        }
+                    }
+                };
+
+                var border = new Border { Width = 100d, Height = 100d };
+
+                var root = new TestRoot(border);
+                root.LayoutManager.ExecuteInitialLayoutPass();
+
+                var animationTask = animation.RunAsync(border, clock);
+
+                // Pulse the clock - this should not throw even though
+                // the first keyframe's value is null (falls back to neutral value)
+                var exception = Record.Exception(() => clock.Pulse(TimeSpan.Zero));
+                Assert.Null(exception);
+
+                // The animation should continue running (using neutral value as fallback)
+                clock.Pulse(TimeSpan.FromSeconds(0.5));
+                Assert.False(animationTask.IsCompleted);
+
+                // Animation completes after its full duration
+                clock.Pulse(TimeSpan.FromSeconds(1));
+                Assert.True(animationTask.IsCompleted);
+            }
+        }
+
+        [Fact]
+        public void Animation_With_Unresolved_Binding_Does_Not_Throw_NullReferenceException()
+        {
+            // Additional test to verify the null reference fix for animator first keyframe value
+
+            var clock = new MockGlobalClock();
+            var services = new TestServices(globalClock: clock);
+
+            using (UnitTestApplication.Start(services))
+            {
+                // Binding to a property that doesn't exist - will evaluate to null
+                var binding = new Binding("MissingProperty");
+
+                var animation = new Animation
+                {
+                    Duration = TimeSpan.FromSeconds(1),
+                    IterationCount = new IterationCount(1),
+                    Children =
+                    {
+                        new KeyFrame
+                        {
+                            Cue = new Cue(0d),
+                            Setters = { new Setter(Layoutable.WidthProperty, binding) }
+                        },
+                        new KeyFrame
+                        {
+                            Cue = new Cue(1d),
+                            Setters = { new Setter(Layoutable.WidthProperty, 300d) }
+                        }
+                    }
+                };
+
+                var control = new Border { Width = 50d };
+                var root = new TestRoot(control);
+                root.LayoutManager.ExecuteInitialLayoutPass();
+
+                // Start animation - the first keyframe value will be null due to unresolved binding
+                var task = animation.RunAsync(control, clock);
+
+                // The fix ensures this doesn't throw NullReferenceException
+                // Animation falls back to neutral value and continues
+                clock.Pulse(TimeSpan.Zero);
+                clock.Pulse(TimeSpan.FromSeconds(0.1));
+
+                // Animation should still be running (uses neutral value as fallback)
+                Assert.False(task.IsCompleted);
+
+                // Animation completes after its full duration
+                clock.Pulse(TimeSpan.FromSeconds(1));
+                Assert.True(task.IsCompleted);
+            }
         }
 
         private sealed class FakeAnimator : InterpolatingAnimator<double>

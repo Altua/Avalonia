@@ -15,6 +15,7 @@ using Avalonia.Rendering.Composition;
 using Avalonia.Threading;
 using Avalonia.Vulkan;
 using Avalonia.X11;
+using Avalonia.X11.Clipboard;
 using Avalonia.X11.Dispatching;
 using Avalonia.X11.Glx;
 using Avalonia.X11.Vulkan;
@@ -28,15 +29,15 @@ namespace Avalonia.X11
         private Lazy<KeyboardDevice> _keyboardDevice = new Lazy<KeyboardDevice>(() => new KeyboardDevice());
         public KeyboardDevice KeyboardDevice => _keyboardDevice.Value;
         public Dictionary<IntPtr, X11EventDispatcher.EventHandler> Windows { get; } = new ();
-        public XI2Manager XI2;
-        public X11Info Info { get; private set; }
-        public X11Screens X11Screens { get; private set; }
-        public Compositor Compositor { get; private set; }
-        public IScreenImpl Screens { get; private set; }
-        public X11PlatformOptions Options { get; private set; }
+        public XI2Manager? XI2 { get; private set; }
+        public X11Info Info { get; private set; } = null!;
+        public X11Screens X11Screens { get; private set; } = null!;
+        public Compositor Compositor { get; private set; } = null!;
+        public IScreenImpl Screens { get; private set; } = null!;
+        public X11PlatformOptions Options { get; private set; } = null!;
         public IntPtr OrphanedWindow { get; private set; }
-        public X11Globals Globals { get; private set; }
-        public XResources Resources { get; private set; }
+        public X11Globals Globals { get; private set; } = null!;
+        public XResources Resources { get; private set; } = null!;
         public ManualRawEventGrouperDispatchQueue EventGrouperDispatchQueue { get; } = new();
 
         public void Initialize(X11PlatformOptions options)
@@ -71,6 +72,9 @@ namespace Avalonia.X11
                ? new UiThreadRenderTimer(60)
                : new SleepLoopRenderTimer(60);
 
+            var clipboardImpl = new X11ClipboardImpl(this);
+            var clipboard = new Input.Platform.Clipboard(clipboardImpl);
+
             AvaloniaLocator.CurrentMutable.BindToSelf(this)
                 .Bind<IWindowingPlatform>().ToConstant(this)
                 .Bind<IDispatcherImpl>().ToConstant<IDispatcherImpl>(options.UseGLibMainLoop
@@ -81,7 +85,8 @@ namespace Avalonia.X11
                 .Bind<KeyGestureFormatInfo>().ToConstant(new KeyGestureFormatInfo(new Dictionary<Key, string>() { }, meta: "Super"))
                 .Bind<IKeyboardDevice>().ToFunc(() => KeyboardDevice)
                 .Bind<ICursorFactory>().ToConstant(new X11CursorFactory(Display))
-                .Bind<IClipboard>().ToConstant(new X11Clipboard(this))
+                .Bind<IClipboardImpl>().ToConstant(clipboardImpl)
+                .Bind<IClipboard>().ToConstant(clipboard)
                 .Bind<IPlatformSettings>().ToSingleton<DBusPlatformSettings>()
                 .Bind<IPlatformIconLoader>().ToConstant(new X11IconLoader())
                 .Bind<IMountedVolumeInfoProvider>().ToConstant(new LinuxMountedVolumeInfoProvider())
@@ -90,9 +95,7 @@ namespace Avalonia.X11
             Screens = X11Screens = new X11Screens(this);
             if (Info.XInputVersion != null)
             {
-                var xi2 = new XI2Manager();
-                if (xi2.Init(this))
-                    XI2 = xi2;
+                XI2 = XI2Manager.TryCreate(this);
             }
 
             var graphics = InitializeGraphics(options, Info);
@@ -108,7 +111,7 @@ namespace Avalonia.X11
         public IntPtr DeferredDisplay { get; set; }
         public IntPtr Display { get; set; }
 
-        private static uint[] X11IconConverter(IWindowIconImpl icon)
+        private static uint[] X11IconConverter(IWindowIconImpl? icon)
         {
             if (!(icon is X11IconData x11icon))
                 return Array.Empty<uint>();
@@ -163,31 +166,30 @@ namespace Avalonia.X11
 
         private static bool ShouldUseXim()
         {
+            // Priority: AVALONIA_IM_MODULE > GTK_IM_MODULE >= QT_IM_MODULE
+            string? imeOverride = Environment.GetEnvironmentVariable("AVALONIA_IM_MODULE");
+            if (string.IsNullOrEmpty(imeOverride))
+                imeOverride = Environment.GetEnvironmentVariable("GTK_IM_MODULE");
+            if (string.IsNullOrEmpty(imeOverride))
+                imeOverride = Environment.GetEnvironmentVariable("QT_IM_MODULE");
+
             // Check if we are forbidden from using IME
-            if (Environment.GetEnvironmentVariable("AVALONIA_IM_MODULE") == "none"
-                || Environment.GetEnvironmentVariable("GTK_IM_MODULE") == "none"
-                || Environment.GetEnvironmentVariable("QT_IM_MODULE") == "none")
-                return true;
-            
+            if (imeOverride == "none")
+                return false;
+
             // Check if XIM is configured
             var modifiers = Environment.GetEnvironmentVariable("XMODIFIERS");
-            if (modifiers == null)
-                return false;
-            if (modifiers.Contains("@im=none") || modifiers.Contains("@im=null"))
-                return false;
-            if (!modifiers.Contains("@im="))
-                return false;
-            
-            // Check if we are configured to use it
-            if (Environment.GetEnvironmentVariable("GTK_IM_MODULE") == "xim"
-                || Environment.GetEnvironmentVariable("QT_IM_MODULE") == "xim"
-                || Environment.GetEnvironmentVariable("AVALONIA_IM_MODULE") == "xim")
-                return true;
-            
+            if (modifiers is not null && modifiers.Contains("@im="))
+            {
+                // If XIM is explicitly requested, or no IME override is configured
+                if (imeOverride == "xim" || string.IsNullOrEmpty(imeOverride))
+                    return true;
+            }
+
             return false;
         }
         
-        private static IPlatformGraphics InitializeGraphics(X11PlatformOptions opts, X11Info info)
+        private static IPlatformGraphics? InitializeGraphics(X11PlatformOptions opts, X11Info info)
         {
             if (opts.RenderingMode is null || !opts.RenderingMode.Any())
             {
@@ -354,7 +356,7 @@ namespace Avalonia
         };
 
         
-        public string WmClass { get; set; }
+        public string? WmClass { get; set; }
 
         /// <summary>
         /// Enables multitouch support. The default value is true.
@@ -392,7 +394,7 @@ namespace Avalonia
         {
             try
             {
-                WmClass = Assembly.GetEntryAssembly()?.GetName()?.Name;
+                WmClass = Assembly.GetEntryAssembly()?.GetName().Name;
             }
             catch
             {
@@ -412,7 +414,7 @@ namespace Avalonia
             return builder;
         }
 
-        public static void InitializeX11Platform(X11PlatformOptions options = null) =>
+        public static void InitializeX11Platform(X11PlatformOptions? options = null) =>
             new AvaloniaX11Platform().Initialize(options ?? new X11PlatformOptions());
     }
 

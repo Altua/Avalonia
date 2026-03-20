@@ -61,6 +61,14 @@ public:
 
     virtual HRESULT GetCurrentDisplayId (CGDirectDisplayID* ret) override;
 
+    virtual HRESULT BeginDragAndDropOperation(
+        AvnDragDropEffects effects,
+        AvnPoint point,
+        IAvnClipboardDataSource* source,
+        IAvnDndResultCallback* callback,
+        void* sourceHandle) override;
+
+
     virtual HRESULT GetPPTClipViewOrigin(AvnPoint *ret) override;
     virtual HRESULT TakeScreenshot(void** ret, int* retLength) override;
     virtual HRESULT PickColor(AvnColor color, bool* cancel, AvnColor* ret) override;
