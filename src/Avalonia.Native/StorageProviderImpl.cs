@@ -88,6 +88,11 @@ internal sealed class StorageProviderNoWindowImpl(StorageProviderApi native) : I
         throw new NotImplementedException();
     }
 
+    public Task<SaveFilePickerResult> SaveFilePickerWithResultAsync(FilePickerSaveOptions options)
+    {
+        throw new NotImplementedException();
+    }
+
     public Task<IReadOnlyList<IStorageFolder>> OpenFolderPickerAsync(FolderPickerOpenOptions options)
     {
         throw new NotImplementedException();
