@@ -53,7 +53,7 @@ namespace Avalonia.Controls.Documents
             set => SetValue(ChildProperty, value);
         }
 
-        internal override void BuildTextRun(IList<TextRun> textRuns, Size blockSize)
+        public override void BuildTextRun(IList<TextRun> textRuns, Size blockSize)
         {
             if (_measuredWidth != blockSize.Width || !Child.IsMeasureValid)
             {

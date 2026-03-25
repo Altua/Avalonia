@@ -38,7 +38,7 @@ namespace Avalonia.Controls.Documents
             set => SetValue(InlinesProperty, value);
         }
 
-        internal override void BuildTextRun(IList<TextRun> textRuns, Size blockSize)
+        public override void BuildTextRun(IList<TextRun> textRuns, Size blockSize)
         {
             foreach (var inline in Inlines)
             {

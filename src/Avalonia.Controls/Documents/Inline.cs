@@ -66,7 +66,7 @@ namespace Avalonia.Controls.Documents
             control.SetValue(TextDecorationsProperty, value);
         }
         
-        internal abstract void BuildTextRun(IList<TextRun> textRuns, Size blockSize);
+        public abstract void BuildTextRun(IList<TextRun> textRuns, Size blockSize);
 
         public abstract void AppendText(StringBuilder stringBuilder);
 

@@ -19,7 +19,7 @@ namespace Avalonia.Controls.Documents
         {
         }
 
-        internal override void BuildTextRun(IList<TextRun> textRuns, Size blockSize)
+        public override void BuildTextRun(IList<TextRun> textRuns, Size blockSize)
         {
             var text = Environment.NewLine;
 
