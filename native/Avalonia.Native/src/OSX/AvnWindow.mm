@@ -263,18 +263,7 @@
 #ifndef IS_NSPANEL
 -(BOOL)canBecomeMainWindow
 {
-    auto parent = _parent.tryGetWithCast<WindowBaseImpl>();
-    auto parentWindow = parent != nullptr? parent->Parent : nullptr;
-
-    // In case of Grunt PowerPoint is the main window
-    if (parentWindow != nullptr && parentWindow->IsOverlay())
-    {
-        return false;
-    }
-    else
-    {
-        return true;
-    }
+    return false; // In case of Grunt, only PowerPoint document window can be main window
 }
 #endif
 
