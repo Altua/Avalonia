@@ -1252,6 +1252,8 @@ namespace Avalonia.X11
         public IPopupImpl? CreatePopup() 
             => _platform.Options.OverlayPopups ? null : new X11Window(_platform, this);
 
+        public void SetIgnoreMouseEvents(bool ignore) { }
+
         public void Activate() => _mode.Activate();
 
         public Size MaxAutoSizeHint => _platform.X11Screens.AllScreens.Select(s => s.Bounds.Size.ToSize(s.Scaling))

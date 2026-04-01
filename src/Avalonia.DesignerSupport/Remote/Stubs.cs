@@ -194,6 +194,10 @@ namespace Avalonia.DesignerSupport.Remote
         {
         }
 
+        public void SetIgnoreMouseEvents(bool ignore)
+        {
+        }
+
         public WindowTransparencyLevel TransparencyLevel => WindowTransparencyLevel.None;
 
         public bool IsClientAreaExtendedToDecorations { get; }

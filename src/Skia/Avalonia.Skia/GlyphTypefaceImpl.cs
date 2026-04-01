@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.IO;
+using System.Linq;
 using System.Runtime.InteropServices;
 using Avalonia.Media;
 using Avalonia.Media.Fonts;
@@ -16,8 +17,7 @@ namespace Avalonia.Skia
     public class GlyphTypefaceImpl : IGlyphTypeface2
     {
         private bool _isDisposed;
-        private readonly SKTypeface _typeface;
-        private readonly NameTable _nameTable;
+        private readonly NameTable? _nameTable;
         private readonly OS2Table? _os2Table;
         private readonly HorizontalHeadTable? _hhTable;
         private IReadOnlyList<OpenTypeTag>? _supportedFeatures;
@@ -114,14 +114,28 @@ namespace Avalonia.Skia
 
             TypographicFamilyName = _nameTable?.GetNameById((ushort)CultureInfo.InvariantCulture.LCID, KnownNameIds.TypographicFamilyName) ?? FamilyName;
 
-            var familyNames = new Dictionary<ushort, string>(_nameTable.Languages.Count);
-
-            foreach (var language in _nameTable.Languages)
+            if (_nameTable != null)
             {
-                familyNames.Add(language, _nameTable.FontFamilyName(language));
-            }
+                var languages = _nameTable.Select(r => r.LanguageID).Distinct().ToList();
+                var familyNames = new Dictionary<ushort, string>(languages.Count);
+                foreach (var language in languages)
+                {
+                    familyNames.Add(language, _nameTable.FontFamilyName(language));
+                }
+                FamilyNames = familyNames;
 
-            FamilyNames = familyNames;
+                var faceNames = new Dictionary<ushort, string>(languages.Count);
+                foreach (var language in languages)
+                {
+                    faceNames[language] = _nameTable.GetNameById(language, KnownNameIds.FontSubfamilyName);
+                }
+                FaceNames = faceNames;
+            }
+            else
+            {
+                FamilyNames = new Dictionary<ushort, string>();
+                FaceNames = new Dictionary<ushort, string>();
+            }
         }
 
         public string TypographicFamilyName { get; }
@@ -129,6 +143,8 @@ namespace Avalonia.Skia
         public IReadOnlyDictionary<ushort, string> FamilyNames { get; }
 
         public IReadOnlyDictionary<ushort, string> FaceNames { get; }
+
+        public SKTypeface SKTypeface { get; }
 
         public IReadOnlyList<OpenTypeTag> SupportedFeatures
         {

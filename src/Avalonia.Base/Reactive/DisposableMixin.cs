@@ -6,7 +6,7 @@ namespace Avalonia.Reactive;
 /// <summary>
 /// Extension methods associated with the IDisposable interface.
 /// </summary>
-internal static class DisposableMixin
+public static class DisposableMixin
 {
     /// <summary>
     /// Ensures the provided disposable is disposed with the specified <see cref="CompositeDisposable"/>.

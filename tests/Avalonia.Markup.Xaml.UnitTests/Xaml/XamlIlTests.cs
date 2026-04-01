@@ -589,7 +589,7 @@ namespace Avalonia.Markup.Xaml.UnitTests
             public override object ConvertFrom(ITypeDescriptorContext context, CultureInfo culture, object value)
             {
                 if (value is string s)
-                    return s.Split([','], StringSplitOptions.RemoveEmptyEntries).Select(x => new MyType(x.Trim()));
+                    return s.Split(new char[] { ',' }, StringSplitOptions.RemoveEmptyEntries).Select(x => new MyType(x.Trim()));
                 return base.ConvertFrom(context, culture, value);
             }
         }

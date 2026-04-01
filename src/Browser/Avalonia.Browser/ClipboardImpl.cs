@@ -1,98 +1,107 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Reflection.Metadata;
+using System.IO;
+using System.Runtime.InteropServices.JavaScript;
 using System.Threading.Tasks;
-using Avalonia.Browser.Interop;
 using Avalonia.Input;
 using Avalonia.Input.Platform;
+using Avalonia.Logging;
+using static Avalonia.Browser.BrowserDataFormatHelper;
+using static Avalonia.Browser.Interop.InputHelper;
 
-namespace Avalonia.Browser
+namespace Avalonia.Browser;
+
+internal sealed class ClipboardImpl : IClipboardImpl
 {
-    internal class ClipboardImpl : IClipboard
+    public async Task<IAsyncDataTransfer?> TryGetDataAsync()
     {
+        var jsItems = await ReadClipboardAsync(BrowserWindowingPlatform.GlobalThis).ConfigureAwait(false);
+        return jsItems.GetPropertyAsInt32("length") == 0 ? null : new BrowserClipboardDataTransfer(jsItems);
+    }
 
-        private const string CUSTOM_MIMETYPE_PREFIX = "web application/";
+    public async Task SetDataAsync(IAsyncDataTransfer dataTransfer)
+    {
+        using var source = CreateWriteableClipboardSource();
 
-        // Custom formats must be prefixed with "web " and follow MIME type format and format should be in lowercase. 
-        // e.g; web application/gruntobject
-        // Otherwise browser throws an exception 
-        private static string GetCustomMimeType(string format)
+        foreach (var dataTransferItem in dataTransfer.Items)
         {
-            return CUSTOM_MIMETYPE_PREFIX + format.ToLowerInvariant();
+            // No ConfigureAwait(false) here: we want TryGetAsync() for next items to be called on the initial thread.
+            await TryAddItemAsync(dataTransferItem, source);
         }
 
-        public Task<string?> GetTextAsync()
-        {
-            return InputHelper.ReadClipboardTextAsync(BrowserWindowingPlatform.GlobalThis)!;
-        }
+        // However, ConfigureAwait(false) is fine here: we're not doing anything after.
+        await WriteClipboardAsync(BrowserWindowingPlatform.GlobalThis, source).ConfigureAwait(false);
+    }
 
-        public Task SetTextAsync(string? text)
-        {
-            return InputHelper.WriteClipboardTextAsync(BrowserWindowingPlatform.GlobalThis, text ?? string.Empty);
-        }
+    private async Task TryAddItemAsync(IAsyncDataTransferItem dataTransferItem, JSObject source)
+    {
+        JSObject? writeableItem = null;
 
-        public async Task ClearAsync() => await SetTextAsync("");
-
-        public async Task SetDataObjectAsync(IDataObject data)
+        try
         {
-            List<string> list = [];
-            foreach (var format in data.GetDataFormats())
+            foreach (var format in dataTransferItem.Formats)
             {
-                var o = data.Get(format);
-                switch (o)
+                var formatString = ToBrowserFormat(format);
+                if (!IsClipboardFormatSupported(formatString))
+                    continue;
+
+                if (DataFormat.Text.Equals(format))
                 {
-                    case string s when format == DataFormats.Text:
-                        list.Add("text/plain");
-                        list.Add(s);
-                        break;
-
-                    case byte[] bytes:
-                        list.Add(GetCustomMimeType(format));
-                        // base64 encoded bytes to maintain consistency with ReadClipboardFormatsAsync method
-                        list.Add(System.Convert.ToBase64String(bytes));
-                        break;
-
-                    default:
-                        break;
+                    var text = await dataTransferItem.TryGetValueAsync(DataFormat.Text) ?? string.Empty;
+                    writeableItem ??= CreateWriteableClipboardItem(source);
+                    AddStringToWriteableClipboardItem(writeableItem, formatString, text);
+                    continue;
                 }
-            }
 
-            await InputHelper.WriteClipboardAsync(BrowserWindowingPlatform.GlobalThis, [.. list]);
-        }
-
-        public async Task<string[]> GetFormatsAsync()
-        {
-            List<string> formatList = [];
-
-            // formats are returned as comma separated strings to overcome an issue with JSInterop. Promise type can't contain an array 
-            var formatsString = await InputHelper.ReadClipboardFormatsAsync(BrowserWindowingPlatform.GlobalThis);
-            var formats = formatsString.Split(',');
-            if (formats is not null)
-            {
-                foreach (var format in formats)
+                if(DataFormat.Bitmap.Equals(format))
                 {
-                    if (format == "text/plain")
+                    var bitmap = await dataTransferItem.TryGetValueAsync(DataFormat.Bitmap);
+                    if (bitmap != null)
                     {
-                        formatList.Add(DataFormats.Text);
+                        using var stream = new MemoryStream();
+                        bitmap.Save(stream);
+
+                        writeableItem ??= CreateWriteableClipboardItem(source);
+                        AddBytesToWriteableClipboardItem(writeableItem, formatString, stream.ToArray());
                     }
-                    else if (format.StartsWith(CUSTOM_MIMETYPE_PREFIX))
-                    {
-                        formatList.Add(format[CUSTOM_MIMETYPE_PREFIX.Length ..]);
-                    }
+
+                    continue;
                 }
+
+                if (format is DataFormat<string> stringFormat)
+                {
+                    var stringValue = await dataTransferItem.TryGetValueAsync(stringFormat);
+                    if (stringValue is not null)
+                    {
+                        writeableItem ??= CreateWriteableClipboardItem(source);
+                        AddStringToWriteableClipboardItem(writeableItem, formatString, stringValue);
+                    }
+                    continue;
+                }
+
+                if (format is DataFormat<byte[]> bytesFormat)
+                {
+                    var bytes = await dataTransferItem.TryGetValueAsync(bytesFormat);
+                    if (bytes is not null)
+                    {
+                        writeableItem ??= CreateWriteableClipboardItem(source);
+                        AddBytesToWriteableClipboardItem(writeableItem, formatString, bytes.AsSpan());
+                    }
+                    continue;
+                }
+
+                // Note: DataFormat.File isn't supported, we can't put arbitrary files onto the clipboard
+                // on the browser for security reasons.
+
+                Logger.TryGet(LogEventLevel.Warning, LogArea.BrowserPlatform)
+                    ?.Log(this, "Unsupported data format {Format}", format);
             }
-            
-            return [.. formatList];
         }
-
-        public async Task<object?> GetDataAsync(string format)
+        finally
         {
-            if (format == DataFormats.Text)
-                return await GetTextAsync();
-
-            // byte array is returned as base64 string to overcome marshalling limitation (JSInterop can' marshal Promise with an array)
-            var base64 = await InputHelper.ReadClipboardAsync(BrowserWindowingPlatform.GlobalThis, GetCustomMimeType(format));
-            return System.Convert.FromBase64String(base64);
+            writeableItem?.Dispose();
         }
     }
+
+    public Task ClearAsync()
+        => WriteClipboardAsync(BrowserWindowingPlatform.GlobalThis, null);
 }

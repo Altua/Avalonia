@@ -9,7 +9,7 @@
     <IsRoslynComponent>true</IsRoslynComponent>
     <EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
     <Nullable>enable</Nullable>
-    <XamlXSourcePath>../../../external/XamlX/src/XamlX</XamlXSourcePath>
+    <XamlXSourcePath>../../../src/Markup/Avalonia.Markup.Xaml.Loader/xamlil.github/src/XamlX</XamlXSourcePath>
   </PropertyGroup>
 
   <ItemGroup>
@@ -19,7 +19,7 @@
 
   <ItemGroup>
     <Compile Include="$(XamlXSourcePath)/**/*.cs"
-             Exclude="$(XamlXSourcePath)/obj/**/*.cs;$(XamlXSourcePath)/IL/SreTypeSystem.cs"
+             Exclude="$(XamlXSourcePath)/obj/**/*.cs;$(XamlXSourcePath)/IL/SreTypeSystem.cs;$(XamlXSourcePath)/Compatibility/*.cs"
              LinkBase="Compiler/XamlX" />
     <Compile Include="../../Shared/IsExternalInit.cs" Link="IsExternalInit.cs" Visible="False" />
     <Compile Include="../../Avalonia.Base/Compatibility/TrimmingAttributes.cs" Link="TrimmingAttributes.cs" Visible="False" />

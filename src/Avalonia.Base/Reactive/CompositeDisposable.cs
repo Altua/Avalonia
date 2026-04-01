@@ -5,7 +5,7 @@ using System.Threading;
 
 namespace Avalonia.Reactive;
 
-internal sealed class CompositeDisposable : ICollection<IDisposable>, IDisposable
+public sealed class CompositeDisposable : ICollection<IDisposable>, IDisposable
 {
     private readonly object _gate = new object();
     private bool _disposed;

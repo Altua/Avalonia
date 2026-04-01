@@ -16,6 +16,10 @@
     <ProjectReference Remove="samples/SingleProjectSandbox/*.csproj" />
     <ProjectReference Remove="samples/ControlCatalog.Desktop/*.*proj" />
 
+    <!-- Exclude legacy vendored XamlX standalone projects not part of Avalonia build -->
+    <ProjectReference Remove="src/Markup/Avalonia.Markup.Xaml.Loader/xamlil.github/src/Benchmarks/Benchmarks.csproj" />
+    <ProjectReference Remove="src/Markup/Avalonia.Markup.Xaml.Loader/xamlil.github/tests/TestClasses/TestClasses.csproj" />
+
     <!-- Grunt special -->
     <ProjectReference Remove="src/iOS/**/*.*proj" />
     <ProjectReference Remove="src/Android/**/*.*proj" />

@@ -204,8 +204,9 @@ namespace Avalonia.Markup.Xaml.XamlIl.CompilerExtensions
         public IXamlField AvaloniaProperty { get; }
         public XamlIlAvaloniaProperty(XamlAstClrProperty original, IXamlField field,
             AvaloniaXamlIlWellKnownTypes types)
-            :base(original, original.Name, original.DeclaringType, original.Getter, original.Setters, original.CustomAttributes)
+            :base(original, original.Name, original.DeclaringType, original.Getter, original.Setters)
         {
+            CustomAttributes = original.CustomAttributes.ToList();
             var assignBinding = original.CustomAttributes.Any(ca => ca.Type.Equals(types.AssignBindingAttribute));
 
             AvaloniaProperty = field;

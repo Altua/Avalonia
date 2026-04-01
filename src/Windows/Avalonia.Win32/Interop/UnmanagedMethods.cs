@@ -1158,7 +1158,7 @@ namespace Avalonia.Win32.Interop
         }
 
         [StructLayout(LayoutKind.Sequential)]
-        internal struct CIEXYZTRIPLE
+        public struct CIEXYZTRIPLE
         {
             public CIEXYZ ciexyzRed;
             public CIEXYZ ciexyzGreen;
@@ -1166,7 +1166,7 @@ namespace Avalonia.Win32.Interop
         }
 
         [StructLayout(LayoutKind.Sequential)]
-        internal struct CIEXYZ
+        public struct CIEXYZ
         {
             public int ciexyzX;
             public int ciexyzY;
