@@ -48,6 +48,8 @@ WindowOverlayImpl::WindowOverlayImpl(void* parentWindow, char* parentView, IAvnW
 
     [[NSNotificationCenter defaultCenter] addObserver:View selector:@selector(overlayWindowDidBecomeKey:) name:NSWindowDidBecomeKeyNotification object:this->parentWindow];
     [[NSNotificationCenter defaultCenter] addObserver:View selector:@selector(overlayWindowDidResignKey:) name:NSWindowDidResignKeyNotification object:this->parentWindow];
+    [[NSNotificationCenter defaultCenter] addObserver:View selector:@selector(overlayWindowDidBecomeMain:) name:NSWindowDidBecomeMainNotification object:this->parentWindow];
+    [[NSNotificationCenter defaultCenter] addObserver:View selector:@selector(overlayWindowDidResignMain:) name:NSWindowDidResignMainNotification object:this->parentWindow];
 
     id mouseMovedMonitor = [NSEvent addLocalMonitorForEventsMatchingMask:NSEventMaskMouseMoved handler:^NSEvent * (NSEvent * event) {
         //NSLog(@"MONITOR mouseMoved START");
