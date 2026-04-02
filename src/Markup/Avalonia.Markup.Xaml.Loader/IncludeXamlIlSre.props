@@ -2,7 +2,7 @@
   <!--Disable Net Perf. analyzer for submodule to avoid commit issue -->
   <PropertyGroup>
     <EnableNETAnalyzers>false</EnableNETAnalyzers>
-    <XamlXSourcePath>$(MSBuildThisFileDirectory)/xamlil.github/src/XamlX</XamlXSourcePath>
+    <XamlXSourcePath>$(MSBuildThisFileDirectory)/../../../external/XamlX/src/XamlX</XamlXSourcePath>
   </PropertyGroup>
 
   <ItemGroup>
@@ -10,19 +10,19 @@
              Exclude="$(XamlXSourcePath)/obj/**/*.cs;$(XamlXSourcePath)/Compatibility/*.cs" />
     <!-- Exclude sibling XamlX sub-projects and test directories so they are not
          auto-included by the SDK default glob from the loader project directory. -->
-    <Compile Remove="$(MSBuildThisFileDirectory)/xamlil.github/src/XamlX.IL.Cecil/**/*.cs" />
-    <Compile Remove="$(MSBuildThisFileDirectory)/xamlil.github/src/XamlX.Parser.GuiLabs/**/*.cs" />
-    <Compile Remove="$(MSBuildThisFileDirectory)/xamlil.github/src/XamlX.Runtime/**/*.cs" />
-    <Compile Remove="$(MSBuildThisFileDirectory)/xamlil.github/src/Benchmarks/**/*.cs" />
-    <Compile Remove="$(MSBuildThisFileDirectory)/xamlil.github/src/BenchmarksCompiler/**/*.cs" />
-    <Compile Remove="$(MSBuildThisFileDirectory)/xamlil.github/tests/**/*.cs" />
+    <Compile Remove="$(MSBuildThisFileDirectory)/../../../external/XamlX/src/XamlX.IL.Cecil/**/*.cs" />
+    <Compile Remove="$(MSBuildThisFileDirectory)/../../../external/XamlX/src/XamlX.Parser.GuiLabs/**/*.cs" />
+    <Compile Remove="$(MSBuildThisFileDirectory)/../../../external/XamlX/src/XamlX.Runtime/**/*.cs" />
+    <Compile Remove="$(MSBuildThisFileDirectory)/../../../external/XamlX/src/Benchmarks/**/*.cs" />
+    <Compile Remove="$(MSBuildThisFileDirectory)/../../../external/XamlX/src/BenchmarksCompiler/**/*.cs" />
+    <Compile Remove="$(MSBuildThisFileDirectory)/../../../external/XamlX/tests/**/*.cs" />
     <!-- Exclude the XamlX Compatibility shims to avoid duplicate symbols with src/Shared/ -->
-    <Compile Remove="$(MSBuildThisFileDirectory)/xamlil.github/src/XamlX/Compatibility/**/*.cs" />
+    <Compile Remove="$(MSBuildThisFileDirectory)/../../../external/XamlX/src/XamlX/Compatibility/**/*.cs" />
     <!-- Exclude any stale obj/ build artifacts under XamlX that the SDK default glob might pick up -->
-    <Compile Remove="$(MSBuildThisFileDirectory)/xamlil.github/src/XamlX/obj/**/*.cs" />
-    <Compile Remove="$(MSBuildThisFileDirectory)/xamlil.github/src/XamlX.IL.Cecil/obj/**/*.cs" />
-    <Compile Remove="$(MSBuildThisFileDirectory)/xamlil.github/src/XamlX.Parser.GuiLabs/obj/**/*.cs" />
-    <Compile Remove="$(MSBuildThisFileDirectory)/xamlil.github/src/XamlX.Runtime/obj/**/*.cs" />
+    <Compile Remove="$(MSBuildThisFileDirectory)/../../../external/XamlX/src/XamlX/obj/**/*.cs" />
+    <Compile Remove="$(MSBuildThisFileDirectory)/../../../external/XamlX/src/XamlX.IL.Cecil/obj/**/*.cs" />
+    <Compile Remove="$(MSBuildThisFileDirectory)/../../../external/XamlX/src/XamlX.Parser.GuiLabs/obj/**/*.cs" />
+    <Compile Remove="$(MSBuildThisFileDirectory)/../../../external/XamlX/src/XamlX.Runtime/obj/**/*.cs" />
   </ItemGroup>
 
   <ItemGroup Condition="!('$(TargetFrameworkIdentifier)' == '.NETCoreApp' AND $([MSBuild]::VersionGreaterThanOrEquals($(TargetFrameworkVersion), '6.0')))">

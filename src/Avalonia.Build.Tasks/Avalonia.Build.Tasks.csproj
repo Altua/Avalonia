@@ -9,8 +9,8 @@
       <NoWarn>$(NoWarn);NU1605;CS8632</NoWarn>
       <DebugType>embedded</DebugType>
       <IncludeSymbols>false</IncludeSymbols>
-      <XamlXSourcePath>../Markup/Avalonia.Markup.Xaml.Loader/xamlil.github/src/XamlX</XamlXSourcePath>
-      <XamlXCecilSourcePath>../Markup/Avalonia.Markup.Xaml.Loader/xamlil.github/src/XamlX.IL.Cecil</XamlXCecilSourcePath>
+      <XamlXSourcePath>../../external/XamlX/src/XamlX</XamlXSourcePath>
+      <XamlXCecilSourcePath>../../external/XamlX/src/XamlX.IL.Cecil</XamlXCecilSourcePath>
     </PropertyGroup>
 
     <!--Disable Net Perf. analyzer for submodule to avoid commit issue -->
