@@ -37,8 +37,8 @@
     <NukeExternalFiles Include="**\*.*.ext" Exclude="bin\**;obj\**" />
 
     <!-- Common build related files -->
-    <Compile Include="Numerge/Numerge/**/*.cs"
-             Exclude="Numerge/Numerge/obj/**/*.cs;Numerge/Numerge/bin/**/*.cs"
+    <Compile Include="../external/Numerge/Numerge/**/*.cs"
+             Exclude="../external/Numerge/Numerge/obj/**/*.cs"
              LinkBase="Numerge" />
     <EmbeddedResource Include="../build/avalonia.snk" />
   </ItemGroup>
