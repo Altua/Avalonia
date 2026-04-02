@@ -60,7 +60,7 @@ public abstract class DataFormat : IEquatable<DataFormat>
 
         return Kind switch
         {
-            DataFormatKind.Application => applicationPrefix + Identifier,
+            DataFormatKind.Application => applicationPrefix + Identifier.ToLowerInvariant(),
             DataFormatKind.Platform => Identifier,
             _ => throw new InvalidOperationException($"Cannot get system name for universal format {Identifier}")
         };
@@ -73,7 +73,7 @@ public abstract class DataFormat : IEquatable<DataFormat>
             return false;
         if (ReferenceEquals(this, other))
             return true;
-        return Kind == other.Kind && Identifier == other.Identifier;
+        return Kind == other.Kind && Identifier.Equals(other.Identifier, StringComparison.InvariantCultureIgnoreCase);
     }
 
     /// <inheritdoc />
