@@ -357,7 +357,7 @@
 - (BOOL) resignFirstResponder
 {
     auto parent = _parent.tryGet();
-    if(parent)
+    if(parent && !parent->IsOverlay()) // Overlay focus change handled by first responder observer
         parent->TopLevelEvents->LostFocus();
     return YES;
 }
