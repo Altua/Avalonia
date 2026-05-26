@@ -43,7 +43,7 @@ namespace Avalonia.Platform
         private readonly Dictionary<TKey, TScreen> _allScreensByKey = screenKeyComparer is not null ?
             new Dictionary<TKey, TScreen>(screenKeyComparer) :
             new Dictionary<TKey, TScreen>();
-        private IReadOnlyList<TScreen>? _allScreens;
+        private TScreen[]? _allScreens;
         private int? _screenCount;
         private bool? _screenDetailsRequestGranted;
         private DispatcherOperation? _onChangeOperation;
