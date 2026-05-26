@@ -151,24 +151,25 @@ namespace Avalonia.Platform
                 ScreenRemoved(screenTuple.Value);
             }
 
-            var tempScreens = new List<TScreen>(screens.Count);
+            int i = 0;
+            _allScreens = new TScreen[screens.Count];
             foreach (var newScreenKey in screens)
             {
                 if (_allScreensByKey.TryGetValue(newScreenKey, out var oldScreen))
                 {
                     ScreenChanged(oldScreen);
-                    tempScreens.Add(oldScreen);
+                    _allScreens[i] = oldScreen;
                 }
                 else
                 {
                     var newScreen = CreateScreenFromKey(newScreenKey);
                     ScreenAdded(newScreen);
                     _allScreensByKey[newScreenKey] = newScreen;
-                    tempScreens.Add(newScreen);
+                    _allScreens[i] = newScreen;
                 }
-            }
 
-            _allScreens = tempScreens;
+                i++;
+            }
         }
     }
 }
