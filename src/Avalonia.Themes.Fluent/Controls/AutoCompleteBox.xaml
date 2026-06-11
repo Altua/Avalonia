@@ -42,6 +42,7 @@
                      BorderThickness="{TemplateBinding BorderThickness}"
                      CornerRadius="{TemplateBinding CornerRadius}"
                      CaretIndex="{TemplateBinding CaretIndex, Mode=TwoWay}"
+                     ClearSelectionOnLostFocus="{TemplateBinding ClearSelectionOnLostFocus}"
                      Padding="{TemplateBinding Padding}"
                      Margin="0"
                      DataValidationErrors.Errors="{TemplateBinding (DataValidationErrors.Errors)}"
@@ -65,7 +66,8 @@
                          BorderThickness="0"
                          Background="Transparent"
                          ItemTemplate="{TemplateBinding ItemTemplate}"
-                         Margin="{DynamicResource AutoCompleteListPadding}" />
+                         Margin="{DynamicResource AutoCompleteListPadding}"
+                         ScrollViewer.IsScrollChainingEnabled="False" />
               </Border>
             </Popup>
           </Grid>

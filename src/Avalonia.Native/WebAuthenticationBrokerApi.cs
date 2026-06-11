@@ -60,5 +60,13 @@ public static class WebAuthenticationBrokerApi
                 _tcs.TrySetResult(ppv?.ToStringArray() ?? []);
             }
         }
+
+        public void OnCompletedWithFilter(IAvnStringArray? array, int selectedFilterIndex)
+        {
+            using (array)
+            {
+                _tcs.TrySetResult(array?.ToStringArray() ?? []);
+            }
+        }
     }
 }

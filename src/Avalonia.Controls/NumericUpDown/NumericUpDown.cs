@@ -379,6 +379,7 @@ namespace Avalonia.Controls
 
             FocusableProperty.OverrideDefaultValue<NumericUpDown>(true);
             IsTabStopProperty.OverrideDefaultValue<NumericUpDown>(false);
+            KeyboardNavigation.TabNavigationProperty.OverrideDefaultValue<NumericUpDown>(KeyboardNavigationMode.Local);
         }
 
         /// <inheritdoc />
@@ -408,6 +409,7 @@ namespace Avalonia.Controls
             if (TextBox != null)
             {
                 TextBox.Text = Text;
+                TextBox[!TabIndexProperty] = this[!TabIndexProperty];
                 TextBox.PointerPressed += TextBoxOnPointerPressed;
                 _textBoxTextChangedSubscription = TextBox.GetObservable(TextBox.TextProperty).Subscribe(txt => TextBoxOnTextChanged());
             }
@@ -466,7 +468,7 @@ namespace Avalonia.Controls
         {
             if (IsInitialized)
             {
-                SyncTextAndValueProperties(false, null);
+                SyncTextAndValueProperties(false, null, true);
             }
         }
 
@@ -630,9 +632,6 @@ namespace Avalonia.Controls
                 throw new ArgumentNullException(nameof(e));
             }
 
-            var handler = Spinned;
-            handler?.Invoke(this, e);
-
             if (e.Direction == SpinDirection.Increase)
             {
                 DoIncrement();
@@ -641,6 +640,8 @@ namespace Avalonia.Controls
             {
                 DoDecrement();
             }
+
+            Spinned?.Invoke(this, e);
         }
 
         /// <summary>

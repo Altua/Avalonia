@@ -63,6 +63,7 @@ namespace Avalonia.Markup.Xaml.XamlIl.CompilerExtensions.Transformers
         public IXamlType IDataTemplate { get; }
         public IXamlType ITemplateOfControl { get; }
         public IXamlType Control { get; }
+        public IXamlType ContentControl { get; }
         public IXamlType ItemsControl { get; }
         public IXamlType ReflectionBindingExtension { get; }
 
@@ -126,11 +127,17 @@ namespace Avalonia.Markup.Xaml.XamlIl.CompilerExtensions.Transformers
         public IXamlType UriKind { get; }
         public IXamlConstructor UriConstructor { get; }
         public IXamlType Style { get; }
+        public IXamlType Container { get; }
+        public IXamlType Styles { get; }
         public IXamlType ControlTheme { get; }
         public IXamlType WindowTransparencyLevel { get; }
         public IXamlType IReadOnlyListOfT { get; }
         public IXamlType ControlTemplate { get; }
         public IXamlType EventHandlerT {  get; }
+        public IXamlMethod GetClassProperty { get; }
+        public IXamlConstructor XamlSourceInfoConstructor { get; }
+        public IXamlMethod XamlSourceInfoSetter { get; }
+        public IXamlMethod XamlSourceInfoDictionarySetter { get; }
 
         sealed internal class InteractivityWellKnownTypes
         {
@@ -247,6 +254,7 @@ namespace Avalonia.Markup.Xaml.XamlIl.CompilerExtensions.Transformers
             DataTemplate = cfg.TypeSystem.GetType("Avalonia.Markup.Xaml.Templates.DataTemplate");
             IDataTemplate = cfg.TypeSystem.GetType("Avalonia.Controls.Templates.IDataTemplate");
             Control = cfg.TypeSystem.GetType("Avalonia.Controls.Control");
+            ContentControl = cfg.TypeSystem.GetType("Avalonia.Controls.ContentControl");
             ITemplateOfControl = cfg.TypeSystem.GetType("Avalonia.Controls.ITemplate`1").MakeGenericType(Control);
             ItemsControl = cfg.TypeSystem.GetType("Avalonia.Controls.ItemsControl");
             ReflectionBindingExtension = cfg.TypeSystem.GetType("Avalonia.Markup.Xaml.MarkupExtensions.ReflectionBindingExtension");
@@ -324,11 +332,29 @@ namespace Avalonia.Markup.Xaml.XamlIl.CompilerExtensions.Transformers
             UriKind = cfg.TypeSystem.GetType("System.UriKind");
             UriConstructor = Uri.GetConstructor(new List<IXamlType>() { cfg.WellKnownTypes.String, UriKind });
             Style = cfg.TypeSystem.GetType("Avalonia.Styling.Style");
+            Container = cfg.TypeSystem.GetType("Avalonia.Styling.ContainerQuery");
+            Styles = cfg.TypeSystem.GetType("Avalonia.Styling.Styles");
             ControlTheme = cfg.TypeSystem.GetType("Avalonia.Styling.ControlTheme");
             ControlTemplate = cfg.TypeSystem.GetType("Avalonia.Markup.Xaml.Templates.ControlTemplate");
             IReadOnlyListOfT = cfg.TypeSystem.GetType("System.Collections.Generic.IReadOnlyList`1");
             EventHandlerT = cfg.TypeSystem.GetType("System.EventHandler`1");
             Interactivity = new InteractivityWellKnownTypes(cfg);
+
+            GetClassProperty = cfg.TypeSystem.GetType("Avalonia.StyledElementExtensions")
+                .GetMethod(name: "GetClassProperty",
+                returnType: AvaloniaProperty,
+                allowDowncast:false,
+                cfg.WellKnownTypes.String
+                );
+
+            var xamlSourceInfo = cfg.TypeSystem.GetType("Avalonia.Markup.Xaml.Diagnostics.XamlSourceInfo");
+            XamlSourceInfoConstructor = xamlSourceInfo.GetConstructor([
+                XamlIlTypes.Int32, XamlIlTypes.Int32, XamlIlTypes.String
+            ]);
+            XamlSourceInfoSetter =
+                xamlSourceInfo.GetMethod("SetXamlSourceInfo", XamlIlTypes.Void, false, XamlIlTypes.Object, xamlSourceInfo);
+            XamlSourceInfoDictionarySetter =
+                xamlSourceInfo.GetMethod("SetXamlSourceInfo", XamlIlTypes.Void, false, IResourceDictionary, XamlIlTypes.Object, xamlSourceInfo);
         }
     }
 

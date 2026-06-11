@@ -6,8 +6,8 @@
     <IsPackable>False</IsPackable>
     <NoWarn>$(NoWarn);CS0649;CS0169;SYSLIB0011</NoWarn>
     <NukeTelemetryVersion>1</NukeTelemetryVersion>
-    <TargetFramework>net7.0</TargetFramework>
     <TargetFramework>$(AvsCurrentTargetFramework)</TargetFramework>
+    <DefaultItemExcludes>$(DefaultItemExcludes);Numerge/**</DefaultItemExcludes>
     <!-- See https://github.com/nuke-build/nuke/issues/818 -->
     <EnableUnsafeBinaryFormatterSerialization>true</EnableUnsafeBinaryFormatterSerialization>
     <!-- Necessary for Microsoft.DotNet.GenAPI.Tool -->
@@ -27,8 +27,6 @@
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
 
-    <PackageDownload Include="Microsoft.DotNet.ApiCompat.Tool" Version="[7.0.305]" />
-    <PackageDownload Include="Microsoft.DotNet.GenAPI.Tool" Version="[8.0.101-servicing.23580.12]" />
     <PackageDownload Include="Microsoft.DotNet.ApiCompat.Tool" Version="[8.0.200]" />
     <PackageDownload Include="Microsoft.DotNet.GenAPI.Tool" Version="[8.0.300-preview.24115.44]" />
     <PackageDownload Include="dotnet-ilrepack" Version="[1.0.0]" />
@@ -39,8 +37,9 @@
     <NukeExternalFiles Include="**\*.*.ext" Exclude="bin\**;obj\**" />
 
     <!-- Common build related files -->
-    <Compile Remove="Numerge/**/*.*" />
-    <Compile Include="Numerge/Numerge/**/*.cs" Exclude="Numerge/Numerge/obj/**/*.cs" />
+    <Compile Include="../external/Numerge/Numerge/**/*.cs"
+             Exclude="../external/Numerge/Numerge/obj/**/*.cs"
+             LinkBase="Numerge" />
     <EmbeddedResource Include="../build/avalonia.snk" />
   </ItemGroup>
 

@@ -11,6 +11,7 @@ using Avalonia.Data.Core.Parsers;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Logging;
+using Avalonia.Threading;
 using Avalonia.Utilities;
 
 namespace Avalonia.Data.Core;
@@ -40,6 +41,7 @@ internal partial class BindingExpression : UntypedBindingExpressionBase, IDescri
     /// <param name="fallbackValue">
     /// The fallback value. Pass <see cref="AvaloniaProperty.UnsetValue"/> for no fallback.
     /// </param>
+    /// <param name="delay">The amount of time to wait before updating the binding source after the value on the target changes.</param>
     /// <param name="converter">The converter to use.</param>
     /// <param name="converterCulture">The converter culture to use.</param>
     /// <param name="converterParameter">The converter parameter.</param>
@@ -59,6 +61,7 @@ internal partial class BindingExpression : UntypedBindingExpressionBase, IDescri
         object? source,
         List<ExpressionNode>? nodes,
         object? fallbackValue,
+        TimeSpan delay = default,
         IValueConverter? converter = null,
         CultureInfo? converterCulture = null,
         object? converterParameter = null,
@@ -86,7 +89,8 @@ internal partial class BindingExpression : UntypedBindingExpressionBase, IDescri
         _targetTypeConverter = targetTypeConverter;
         _shouldUpdateOneTimeBindingTarget = _mode == BindingMode.OneTime;
 
-        if (converter is not null ||
+        if (delay != default ||
+            converter is not null ||
             converterCulture is not null ||
             converterParameter is not null ||
             fallbackValue != AvaloniaProperty.UnsetValue ||
@@ -96,6 +100,7 @@ internal partial class BindingExpression : UntypedBindingExpressionBase, IDescri
         {
             _uncommon = new()
             {
+                _delay = delay,
                 _converter = converter,
                 _converterCulture = converterCulture,
                 _converterParameter = converterParameter,
@@ -133,17 +138,18 @@ internal partial class BindingExpression : UntypedBindingExpressionBase, IDescri
         get
         {
             var b = new StringBuilder();
-            LeafNode.BuildString(b, _nodes);
+            LeafNode?.BuildString(b, _nodes);
             return b.ToString();
         }
     }
 
     public Type? SourceType => (LeafNode as ISettableNode)?.ValueType;
+    public TimeSpan Delay => _uncommon?._delay ?? default;
     public IValueConverter? Converter => _uncommon?._converter;
     public CultureInfo ConverterCulture => _uncommon?._converterCulture ?? CultureInfo.CurrentCulture;
     public object? ConverterParameter => _uncommon?._converterParameter;
     public object? FallbackValue => _uncommon is not null ? _uncommon._fallbackValue : AvaloniaProperty.UnsetValue;
-    public ExpressionNode LeafNode => _nodes[_nodes.Count - 1];
+    public ExpressionNode? LeafNode => _nodes.Count > 0 ? _nodes[_nodes.Count - 1] : null;
     public string? StringFormat => _uncommon?._stringFormat;
     public object? TargetNullValue => _uncommon?._targetNullValue ?? AvaloniaProperty.UnsetValue;
     public UpdateSourceTrigger UpdateSourceTrigger => _uncommon?._updateSourceTrigger ?? UpdateSourceTrigger.PropertyChanged;
@@ -308,6 +314,8 @@ internal partial class BindingExpression : UntypedBindingExpressionBase, IDescri
 
     internal override bool WriteValueToSource(object? value)
     {
+        StopDelayTimer();
+
         if (_nodes.Count == 0 || LeafNode is not ISettableNode setter || setter.ValueType is not { } type)
             return false;
 
@@ -347,8 +355,9 @@ internal partial class BindingExpression : UntypedBindingExpressionBase, IDescri
             }
         }
 
-        // Don't set the value if it's unchanged.
-        if (TypeUtilities.IdentityEquals(LeafNode.Value, value, type))
+        // Don't set the value if it's unchanged. If there is a binding error, we still have to set the value
+        // in order to clear the error.
+        if (TypeUtilities.IdentityEquals(LeafNode!.Value, value, type) && ErrorType == BindingErrorType.None)
             return true;
 
         try
@@ -399,6 +408,8 @@ internal partial class BindingExpression : UntypedBindingExpressionBase, IDescri
 
     protected override void StopCore()
     {
+        StopDelayTimer();
+
         foreach (var node in _nodes)
             node.SetSource(AvaloniaProperty.UnsetValue, null);
 
@@ -496,10 +507,13 @@ internal partial class BindingExpression : UntypedBindingExpressionBase, IDescri
     {
         Debug.Assert(_mode is BindingMode.TwoWay or BindingMode.OneWayToSource);
 
+        StopDelayTimer();
+
         if (TryGetTarget(out var target) &&
             TargetProperty is not null &&
             target.GetValue(TargetProperty) is var value &&
-            !TypeUtilities.IdentityEquals(value, LeafNode.Value, TargetType))
+            LeafNode is { } leafNode &&
+            !TypeUtilities.IdentityEquals(value, leafNode.Value, TargetType))
         {
             WriteValueToSource(value);
         }
@@ -517,11 +531,33 @@ internal partial class BindingExpression : UntypedBindingExpressionBase, IDescri
         Debug.Assert(_mode is BindingMode.TwoWay or BindingMode.OneWayToSource);
         Debug.Assert(UpdateSourceTrigger is UpdateSourceTrigger.PropertyChanged);
 
-        // The value must be read from the target object instead of using the value from the event
-        // because the value may have changed again between the time the event was raised and now.
-        if (e.Property == TargetProperty && TryGetTarget(out var target))
-            WriteValueToSource(target.GetValue(TargetProperty));
+        if (e.Property != TargetProperty)
+            return;
+
+        if (_uncommon?._delay is not { Ticks: > 0 } delay)
+        {
+            // The value must be read from the target object instead of using the value from the event
+            // because the value may have changed again between the time the event was raised and now.
+            WriteTargetValueToSource();
+            return;
+        }
+
+        if (_uncommon!._delayTimer is { } delayTimer)
+            delayTimer.Stop();
+        else
+            delayTimer = _uncommon._delayTimer = new DispatcherTimer(delay, DispatcherPriority.Normal, OnDelayTimerTick) { Tag = this };
+
+        delayTimer.Start();
     }
+
+    // This is a static method so that the same delegate object can be reused by all expression instances
+    private static void OnDelayTimerTick(object? sender, EventArgs e)
+    {
+        var expression = (BindingExpression)((DispatcherTimer)sender!).Tag!;
+        expression.WriteTargetValueToSource();
+    }
+
+    private void StopDelayTimer() => _uncommon?._delayTimer?.Stop();
 
     private object? ConvertFallback(object? fallback, string fallbackName)
     {
@@ -561,6 +597,8 @@ internal partial class BindingExpression : UntypedBindingExpressionBase, IDescri
     /// </summary>
     private class UncommonFields
     {
+        public TimeSpan _delay;
+        public DispatcherTimer? _delayTimer;
         public IValueConverter? _converter;
         public object? _converterParameter;
         public CultureInfo? _converterCulture;

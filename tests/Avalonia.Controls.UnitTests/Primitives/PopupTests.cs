@@ -670,6 +670,51 @@ namespace Avalonia.Controls.UnitTests.Primitives
         }
 
         [Fact]
+        public void Popup_Should_Clear_Keyboard_Focus_From_Children_When_Closed()
+        {
+            using (CreateServicesWithFocus())
+            {
+                var winButton = new Button();
+                var window = PreparedWindow(new Panel { Children = { winButton }});
+
+                var border1 = new Border();
+                var border2 = new Border();
+                var button = new Button();
+                border1.Child = border2;
+                border2.Child = button;
+                var popup = new Popup
+                {
+                    PlacementTarget = window,
+                    Child = new StackPanel
+                    {
+                        Children =
+                        {
+                            border1
+                        }
+                    }
+                };
+
+                ((ISetLogicalParent)popup).SetParent(popup.PlacementTarget);
+                window.Show();
+                winButton.Focus();
+                popup.Open();
+
+                button.Focus();
+
+                var inputRoot = Assert.IsAssignableFrom<IInputRoot>(popup.Host);
+
+                var focusManager = inputRoot.FocusManager!;
+                Assert.Same(button, focusManager.GetFocusedElement());
+
+                border1.Child = null;
+
+                winButton.Focus();
+
+                Assert.False(border2.IsKeyboardFocusWithin);
+            }
+        }
+
+        [Fact]
         public void Closing_Popup_Sets_Focus_On_PlacementTarget()
         {
             using (CreateServicesWithFocus())
@@ -1237,9 +1282,7 @@ namespace Avalonia.Controls.UnitTests.Primitives
                 popup.Open();
                 root.LayoutManager.ExecuteLayoutPass();
 
-                // Ideally, callback should be executed only once for this test.
-                // But currently PlacementTargetLayoutUpdated triggers second update either way.
-                Assert.True(callbackExecuted >= 1);
+                Assert.Equal(1, callbackExecuted);
             }
         }
 
@@ -1260,6 +1303,38 @@ namespace Avalonia.Controls.UnitTests.Primitives
             result.ApplyTemplate();
 
             return result;
+        }
+
+        [Fact]
+        public void Popup_Open_With_Correct_IsUsingOverlayLayer_And_Disabled_OverlayLayer()
+        {
+            using (CreateServices())
+            {
+                var target = new Popup();
+                target.IsOpen = true;
+                target.ShouldUseOverlayLayer = false;
+
+                var window = PreparedWindow(target);
+                window.Show();
+
+                Assert.Equal(UsePopupHost, target.IsUsingOverlayLayer);
+            }
+        }
+
+        [Fact]
+        public void Popup_Open_With_Correct_IsUsingOverlayLayer_And_Enabled_OverlayLayer()
+        {
+            using (CreateServices())
+            {
+                var target = new Popup();
+                target.IsOpen = true;
+                target.ShouldUseOverlayLayer = true;
+
+                var window = PreparedWindow(target);
+                window.Show();
+
+                Assert.Equal(true, target.IsUsingOverlayLayer);
+            }
         }
 
         private IDisposable CreateServices()

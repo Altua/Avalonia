@@ -4,10 +4,9 @@
     <ProjectReference Include="src/Avalonia.Build.Tasks/Avalonia.Build.Tasks.csproj" />
     <ProjectReference Include="src/**/*.*proj" />
     <ProjectReference Condition="'$(SkipBuildingSamples)' != 'True'" Include="samples/**/*.*proj" />
-    <ProjectReference Condition="'$(SkipBuildingTests)' != 'True'" Include="tests/**/*.*proj" />
+    <ProjectReference Condition="'$(SkipBuildingTests)' != 'True'" Include="tests/**/*.*proj" Exclude="tests/BuildTests/**" />
     <ProjectReference Include="packages/**/*.*proj" />
     <ProjectReference Remove="**/*.shproj" />
-    <ProjectReference Remove="src/Markup/Avalonia.Markup.Xaml.Loader/xamlil.github/**/*.*proj" />
     <!-- Exclude iOS, Android and Browser samples from build -->
     <ProjectReference Remove="samples/*.iOS/*.csproj" />
     <ProjectReference Remove="samples/*.Android/*.csproj" />
@@ -16,6 +15,10 @@
     <ProjectReference Remove="samples/*.Tizen/*.csproj" />
     <ProjectReference Remove="samples/SingleProjectSandbox/*.csproj" />
     <ProjectReference Remove="samples/ControlCatalog.Desktop/*.*proj" />
+
+    <!-- Exclude legacy vendored XamlX standalone projects not part of Avalonia build -->
+    <ProjectReference Remove="src/Markup/Avalonia.Markup.Xaml.Loader/xamlil.github/src/Benchmarks/Benchmarks.csproj" />
+    <ProjectReference Remove="src/Markup/Avalonia.Markup.Xaml.Loader/xamlil.github/tests/TestClasses/TestClasses.csproj" />
 
     <!-- Grunt special -->
     <ProjectReference Remove="src/iOS/**/*.*proj" />

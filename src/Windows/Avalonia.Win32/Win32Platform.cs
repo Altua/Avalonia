@@ -111,9 +111,12 @@ namespace Avalonia.Win32
             s_instance._enforcePerMonitorAwareness = SetDpiAwareness();
 
             var renderTimer = options.ShouldRenderOnUIThread ? new UiThreadRenderTimer(60) : new DefaultRenderTimer(60);
+            var clipboardImpl = new ClipboardImpl();
+            var clipboard = new Clipboard(clipboardImpl);
 
             AvaloniaLocator.CurrentMutable
-                .Bind<IClipboard>().ToSingleton<ClipboardImpl>()
+                .Bind<IClipboardImpl>().ToConstant(clipboardImpl)
+                .Bind<IClipboard>().ToConstant(clipboard)
                 .Bind<ICursorFactory>().ToConstant(CursorFactory.Instance)
                 .Bind<IKeyboardDevice>().ToConstant(WindowsKeyboardDevice.Instance)
                 .Bind<IPlatformSettings>().ToSingleton<Win32PlatformSettings>()
@@ -244,6 +247,7 @@ namespace Avalonia.Win32
                 throw new Win32Exception();
             }
 
+            TrayIconImpl.ChangeWindowMessageFilter(_hwnd);
         }
 
         public ITrayIconImpl CreateTrayIcon()
@@ -261,7 +265,7 @@ namespace Avalonia.Win32
         public IWindowImpl CreateEmbeddableWindow()
         {
             var embedded = new EmbeddedWindowImpl();
-            embedded.Show(true, false);
+            embedded.Show(false, false);
             return embedded;
         }
 

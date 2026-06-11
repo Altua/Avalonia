@@ -726,7 +726,12 @@ namespace Avalonia.Controls.UnitTests
         public void Should_TabControl_Recognizes_AccessKey(Key accessKey, int selectedTabIndex)
         {
             var ah = new AccessKeyHandler();
-            using (UnitTestApplication.Start(TestServices.StyledWindow.With(accessKeyHandler: ah)))
+            var kd = new KeyboardDevice();
+            using (UnitTestApplication.Start(TestServices.StyledWindow
+                       .With(
+                           accessKeyHandler: ah,
+                           keyboardDevice: () => kd)
+                   ))
             {
                 var impl = CreateMockTopLevelImpl();
 
@@ -744,7 +749,8 @@ namespace Avalonia.Controls.UnitTests
                         new TabItem { Header = "_Disabled", IsEnabled = false },
                     }
                 };
-
+                kd.SetFocusedElement((TabItem)tabControl.Items[selectedTabIndex], NavigationMethod.Unspecified, KeyModifiers.None);
+                
                 var root = new TestTopLevel(impl.Object)
                 {
                     Template = CreateTemplate(),

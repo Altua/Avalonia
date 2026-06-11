@@ -4,6 +4,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
+using System.Text;
 using Avalonia.Platform;
 using Avalonia.Utilities;
 
@@ -22,33 +23,41 @@ namespace Avalonia.Media.Fonts
         public abstract bool TryGetGlyphTypeface(string familyName, FontStyle style, FontWeight weight, FontStretch stretch,
            [NotNullWhen(true)] out IGlyphTypeface? glyphTypeface);
 
-        public bool TryMatchCharacter(int codepoint, FontStyle style, FontWeight weight, FontStretch stretch,
+        public virtual bool TryMatchCharacter(int codepoint, FontStyle style, FontWeight weight, FontStretch stretch,
             string? familyName, CultureInfo? culture, out Typeface match)
         {
             match = default;
-
-            if (string.IsNullOrEmpty(familyName))
+        
+            //If a font family is defined we try to find a match inside that family first
+            if (familyName != null && _glyphTypefaceCache.TryGetValue(familyName, out var glyphTypefaces))
             {
-                foreach (var typefaces in _glyphTypefaceCache.Values)
+                if (TryGetNearestMatch(glyphTypefaces, new FontCollectionKey { Style = style, Weight = weight, Stretch = stretch }, out var glyphTypeface))
                 {
-                    if (TryGetNearestMatch(typefaces, new FontCollectionKey { Style = style, Weight = weight, Stretch = stretch }, out var glyphTypeface))
+                    if (glyphTypeface.TryGetGlyph((uint)codepoint, out _))
                     {
-                        if (glyphTypeface.TryGetGlyph((uint)codepoint, out _))
-                        {
-                            match = new Typeface(Key.AbsoluteUri + "#" + glyphTypeface.FamilyName, style, weight, stretch);
+                        match = new Typeface(new FontFamily(null, Key.AbsoluteUri + "#" + glyphTypeface.FamilyName), style, weight, stretch);
 
-                            return true;
-                        }
+                        return true;
                     }
                 }
             }
-            else
+
+            //Try to find a match in any font family
+            foreach (var pair in _glyphTypefaceCache)
             {
-                if (TryGetGlyphTypeface(familyName, style, weight, stretch, out var glyphTypeface))
+                if(pair.Key == familyName)
                 {
-                    if (glyphTypeface.FamilyName.Contains(familyName) && glyphTypeface.TryGetGlyph((uint)codepoint, out _))
+                    //We already tried this before
+                    continue;
+                }
+
+                glyphTypefaces = pair.Value;
+
+                if (TryGetNearestMatch(glyphTypefaces, new FontCollectionKey { Style = style, Weight = weight, Stretch = stretch }, out var glyphTypeface))
+                {
+                    if (glyphTypeface.TryGetGlyph((uint)codepoint, out _))
                     {
-                        match = new Typeface(Key.AbsoluteUri + "#" + familyName, style, weight, stretch);
+                        match = new Typeface(new FontFamily(null, Key.AbsoluteUri + "#" + glyphTypeface.FamilyName), style, weight, stretch);
 
                         return true;
                     }
@@ -56,6 +65,88 @@ namespace Avalonia.Media.Fonts
             }
 
             return false;
+        }
+
+        public virtual bool TryCreateSyntheticGlyphTypeface(
+            IGlyphTypeface glyphTypeface,
+            FontStyle style, 
+            FontWeight weight, 
+            FontStretch stretch, 
+            [NotNullWhen(true)] out IGlyphTypeface? syntheticGlyphTypeface)
+        {
+            syntheticGlyphTypeface = null;
+
+            //Source family should be present in the cache.
+            if (!_glyphTypefaceCache.TryGetValue(glyphTypeface.FamilyName, out var glyphTypefaces))
+            {
+                return false;
+            }
+
+            var fontManager = FontManager.Current.PlatformImpl;
+
+            var key = new FontCollectionKey(style, weight, stretch);
+
+            var currentKey =
+                new FontCollectionKey(glyphTypeface.Style, glyphTypeface.Weight, glyphTypeface.Stretch);
+
+            if (currentKey == key)
+            {
+                return false;
+            }
+
+            if (glyphTypeface is not IGlyphTypeface2 glyphTypeface2)
+            {
+                return false;
+            }
+
+            var fontSimulations = FontSimulations.None;
+
+            if (style != FontStyle.Normal && glyphTypeface2.Style != style)
+            {
+                fontSimulations |= FontSimulations.Oblique;
+            }
+
+            if ((int)weight >= 600 && glyphTypeface2.Weight < weight)
+            {
+                fontSimulations |= FontSimulations.Bold;
+            }
+
+            if (fontSimulations != FontSimulations.None && glyphTypeface2.TryGetStream(out var stream))
+            {
+                using (stream)
+                {
+                    if (fontManager.TryCreateGlyphTypeface(stream, fontSimulations, out syntheticGlyphTypeface))
+                    {
+                        //Add the TypographicFamilyName to the cache
+                        if (!string.IsNullOrEmpty(glyphTypeface2.TypographicFamilyName))
+                        {
+                            AddGlyphTypefaceByFamilyName(glyphTypeface2.TypographicFamilyName, syntheticGlyphTypeface);
+                        }
+
+                        foreach (var kvp in glyphTypeface2.FamilyNames)
+                        {
+                            AddGlyphTypefaceByFamilyName(kvp.Value, syntheticGlyphTypeface);
+                        }
+
+                        return true;
+                    }
+
+                    return false;
+                }
+            }
+
+            return false;
+
+            void AddGlyphTypefaceByFamilyName(string familyName, IGlyphTypeface glyphTypeface)
+            {
+                var typefaces = _glyphTypefaceCache.GetOrAdd(familyName,
+                    x =>
+                    {
+                        return new ConcurrentDictionary<FontCollectionKey, IGlyphTypeface?>();
+                    });
+
+                typefaces.TryAdd(key, glyphTypeface);
+            }
         }
 
         public abstract void Initialize(IFontManagerImpl fontManager);
@@ -132,7 +223,7 @@ namespace Avalonia.Media.Fonts
                     glyphTypeface = typeface;
 
                     return true;
-                }            
+                }
             }
 
             return false;
@@ -181,7 +272,7 @@ namespace Avalonia.Media.Fonts
             glyphTypeface = null;
             var weight = (int)key.Weight;
 
-            //If the target weight given is between 400 and 500 inclusive          
+            //If the target weight given is between 400 and 500 inclusive
             if (weight >= 400 && weight <= 500)
             {
                 //Look for available weights between the target and 500, in ascending order.
@@ -212,7 +303,7 @@ namespace Avalonia.Media.Fonts
                 }
             }
 
-            //If a weight less than 400 is given, look for available weights less than the target, in descending order.           
+            //If a weight less than 400 is given, look for available weights less than the target, in descending order.
             if (weight < 400)
             {
                 for (var i = 0; weight - i >= 100; i += 50)
@@ -271,109 +362,54 @@ namespace Avalonia.Media.Fonts
             var weight = typeface.Weight;
             var stretch = typeface.Stretch;
 
-            if(TryGetStyle(ref normalizedFamilyName, out var foundStyle))
+            StringBuilder? normalizedFamilyNameBuilder = null;
+            var totalCharsRemoved = 0;
+
+            var tokenizer = new SpanStringTokenizer(normalizedFamilyName, ' ');
+
+            // Skip initial family name.
+            tokenizer.ReadSpan();
+
+            while (tokenizer.TryReadSpan(out var token))
             {
-                style = foundStyle;
+                // Don't try to match numbers.
+                if (new SpanStringTokenizer(token).TryReadInt32(out _))
+                {
+                    continue;
+                }
+
+                // Try match with font style, weight or stretch and update accordingly.
+                var match = false;
+                if (EnumHelper.TryParse<FontStyle>(token, true, out var newStyle))
+                {
+                    style = newStyle;
+                    match = true;
+                }
+                else if (EnumHelper.TryParse<FontWeight>(token, true, out var newWeight))
+                {
+                    weight = newWeight;
+                    match = true;
+                }
+                else if (EnumHelper.TryParse<FontStretch>(token, true, out var newStretch))
+                {
+                    stretch = newStretch;
+                    match = true;
+                }
+
+                if (match)
+                {
+                    // Carve out matched word from the normalized name.
+                    normalizedFamilyNameBuilder ??= new StringBuilder(normalizedFamilyName);
+                    normalizedFamilyNameBuilder.Remove(tokenizer.CurrentTokenIndex - totalCharsRemoved, token.Length);
+                    totalCharsRemoved += token.Length;
+                }
             }
 
-            if(TryGetWeight(ref normalizedFamilyName, out var foundWeight))
-            {
-                weight = foundWeight;
-            }
-
-            if(TryGetStretch(ref normalizedFamilyName, out var foundStretch))
-            {
-                stretch = foundStretch;
-            }
+            // Get rid of any trailing spaces.
+            normalizedFamilyName = (normalizedFamilyNameBuilder?.ToString() ?? normalizedFamilyName).TrimEnd();
 
             //Preserve old font source
             return new Typeface(typeface.FontFamily, style, weight, stretch);
-
-        }
-
-        internal static bool TryGetWeight(ref string familyName, out FontWeight weight)
-        {
-            weight = FontWeight.Normal;
-
-            var tokenizer = new StringTokenizer(familyName, ' ');
-
-            tokenizer.ReadString();
-
-            while (tokenizer.TryReadString(out var weightString))
-            {
-                if (new StringTokenizer(weightString).TryReadInt32(out _))
-                {
-                    continue;
-                }
-
-                if (!Enum.TryParse(weightString, true, out weight))
-                {
-                    continue;
-                }
-
-                familyName = familyName.Replace(" " + weightString, "").TrimEnd();
-
-                return true;
-            }
-
-            return false;
-        }
-
-        internal static bool TryGetStyle(ref string familyName, out FontStyle style)
-        {
-            style = FontStyle.Normal;
-
-            var tokenizer = new StringTokenizer(familyName, ' ');
-
-            tokenizer.ReadString();
-
-            while (tokenizer.TryReadString(out var styleString))
-            {
-                //Do not try to parse an integer
-                if (new StringTokenizer(styleString).TryReadInt32(out _))
-                {
-                    continue;
-                }
-
-                if (!Enum.TryParse(styleString, true, out style))
-                {
-                    continue;
-                }
-
-                familyName = familyName.Replace(" " + styleString, "").TrimEnd();
-
-                return true;
-            }
-
-            return false;
-        }
-
-        internal static bool TryGetStretch(ref string familyName, out FontStretch stretch)
-        {
-            stretch = FontStretch.Normal;
-
-            var tokenizer = new StringTokenizer(familyName, ' ');
-
-            tokenizer.ReadString();
-
-            while (tokenizer.TryReadString(out var stretchString))
-            {
-                if (new StringTokenizer(stretchString).TryReadInt32(out _))
-                {
-                    continue;
-                }
-
-                if (!Enum.TryParse(stretchString, true, out stretch))
-                {
-                    continue;
-                }
-
-                familyName = familyName.Replace(" " + stretchString, "").TrimEnd();
-
-                return true;
-            }
-
-            return false;
         }
     }
 }

@@ -106,6 +106,9 @@ namespace Avalonia.Native
                 _factory.MacOptions.SetDisableSetProcessName(macOpts.DisableSetProcessName ? 1 : 0);
             }
 
+            var clipboardImpl = new ClipboardImpl(_factory.CreateClipboard());
+            var clipboard = new Clipboard(clipboardImpl);
+
             AvaloniaLocator.CurrentMutable
                 .Bind<IDispatcherImpl>().ToConstant(new DispatcherImpl(_factory.CreatePlatformThreadingInterface()))
                 .Bind<ICursorFactory>().ToConstant(new CursorFactory(_factory.CreateCursorFactory()))
@@ -115,7 +118,8 @@ namespace Avalonia.Native
                 .Bind<IPlatformSettings>().ToConstant(new NativePlatformSettings(_factory.CreatePlatformSettings()))
                 .Bind<IWindowingPlatform>().ToConstant(this)
                 .Bind<IOverlayPlatform>().ToConstant(this)
-                .Bind<IClipboard>().ToConstant(new ClipboardImpl(_factory.CreateClipboard()))
+                .Bind<IClipboardImpl>().ToConstant(clipboardImpl)
+                .Bind<IClipboard>().ToConstant(clipboard)
                 .Bind<IRenderTimer>().ToConstant(new ThreadProxyRenderTimer(new AvaloniaNativeRenderTimer(_factory.CreatePlatformRenderTimer())))
                 .Bind<IMountedVolumeInfoProvider>().ToConstant(new MacOSMountedVolumeInfoProvider())
                 .Bind<IPlatformDragSource>().ToConstant(new AvaloniaNativeDragSource(_factory))
@@ -147,7 +151,7 @@ namespace Avalonia.Native
                 {
                     try
                     {
-                        _platformGraphics = new AvaloniaNativeGlPlatformGraphics(_factory.ObtainGlDisplay());
+                        _platformGraphics = new AvaloniaNativeGlPlatformGraphics(_factory.ObtainGlDisplay(), _factory);
                         break;
                     }
                     catch (Exception)

@@ -13,6 +13,7 @@ using Avalonia.Controls.Templates;
 using Avalonia.Data;
 using Avalonia.Diagnostics;
 using Avalonia.Input;
+using Avalonia.Layout;
 using Avalonia.Media;
 using Avalonia.Platform;
 using Avalonia.Rendering;
@@ -37,47 +38,6 @@ namespace Avalonia.LeakTests
         public ControlTests(ITestOutputHelper atr)
         {
             DotMemoryUnitTestOutput.SetOutputMethod(atr.WriteLine);
-        }
-
- 
-        [Fact]
-        public void DataGrid_Is_Freed()
-        {
-            using (Start())
-            {
-                // When attached to INotifyCollectionChanged, DataGrid will subscribe to it's events, potentially causing leak
-                Func<Window> run = () =>
-                {
-                    var window = new Window
-                    {
-                        Content = new DataGrid
-                        {
-                            ItemsSource = _observableCollection
-                        }
-                    };
-
-                    window.Show();
-
-                    // Do a layout and make sure that DataGrid gets added to visual tree.
-                    window.LayoutManager.ExecuteInitialLayoutPass();
-                    Assert.IsType<DataGrid>(window.Presenter.Child);
-
-                    // Clear the content and ensure the DataGrid is removed.
-                    window.Content = null;
-                    window.LayoutManager.ExecuteLayoutPass();
-                    Assert.Null(window.Presenter.Child);
-
-                    return window;
-                };
-
-                var result = run();
-
-                // Process all Loaded events to free control reference(s)
-                Dispatcher.UIThread.RunJobs(DispatcherPriority.Loaded);
-
-                dotMemory.Check(memory =>
-                    Assert.Equal(0, memory.GetObjects(where => where.Type.Is<DataGrid>()).ObjectsCount));
-            }
         }
 
         [Fact]
@@ -463,12 +423,17 @@ namespace Avalonia.LeakTests
         {
             using (Start())
             {
+                var screen1 = new Mock<Screen>(1.75, new PixelRect(new PixelSize(1920, 1080)), new PixelRect(new PixelSize(1920, 966)), true);
+                var screens = new Mock<IScreenImpl>();
+                screens.Setup(x => x.ScreenFromWindow(It.IsAny<IWindowBaseImpl>())).Returns(screen1.Object);
+
                 var impl = new Mock<IWindowImpl>();
                 impl.Setup(r => r.TryGetFeature(It.IsAny<Type>())).Returns(null);
                 impl.SetupGet(x => x.RenderScaling).Returns(1);
                 impl.SetupProperty(x => x.Closed);
                 impl.Setup(x => x.Compositor).Returns(RendererMocks.CreateDummyCompositor());
                 impl.Setup(x => x.Dispose()).Callback(() => impl.Object.Closed());
+                impl.Setup(x => x.TryGetFeature(It.Is<Type>(t => t == typeof(IScreenImpl)))).Returns(screens.Object);
 
                 AvaloniaLocator.CurrentMutable.Bind<IWindowingPlatform>()
                     .ToConstant(new MockWindowingPlatform(() => impl.Object));
@@ -1036,6 +1001,54 @@ namespace Avalonia.LeakTests
             }
         }
         
+        [Fact]
+        public void LayoutTransformControl_Is_Freed()
+        {
+            using (Start())
+            {
+                var transform = new RotateTransform { Angle = 90 };
+
+                Func<Window> run = () =>
+                {
+                    var window = new Window
+                    {
+                        Content = new LayoutTransformControl
+                        {
+                            LayoutTransform = transform,
+                            Child = new Canvas()
+                        }
+                    };
+
+                    window.Show();
+
+                    // Do a layout and make sure that LayoutTransformControl gets added to visual tree
+                    window.LayoutManager.ExecuteInitialLayoutPass();
+                    Assert.IsType<LayoutTransformControl>(window.Presenter.Child);
+                    Assert.NotEmpty(window.Presenter.Child.GetVisualChildren());
+
+                    // Clear the content and ensure the LayoutTransformControl is removed.
+                    window.Content = null;
+                    window.LayoutManager.ExecuteLayoutPass();
+                    Assert.Null(window.Presenter.Child);
+
+                    return window;
+                };
+
+                var result = run();
+
+                // Process all Loaded events to free control reference(s)
+                Dispatcher.UIThread.RunJobs(DispatcherPriority.Loaded);
+
+                dotMemory.Check(memory =>
+                    Assert.Equal(0, memory.GetObjects(where => where.Type.Is<LayoutTransformControl>()).ObjectsCount));
+                dotMemory.Check(memory =>
+                    Assert.Equal(0, memory.GetObjects(where => where.Type.Is<Canvas>()).ObjectsCount));
+
+                // We are keeping transform alive to simulate a resource that outlives the control.
+                GC.KeepAlive(transform);
+            }
+        }
+
         private FuncControlTemplate CreateWindowTemplate()
         {
             return new FuncControlTemplate<Window>((parent, scope) =>

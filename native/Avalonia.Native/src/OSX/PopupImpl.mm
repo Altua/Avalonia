@@ -40,7 +40,8 @@ public:
         auto result = WindowBaseImpl::SetParent(parent);
         
         // if PP textbox is firstResponder then it will not relinquish the keyboard focus, if the popup can't become a key window.
-        if (Parent != nullptr && Parent->IsOverlay() && ![NSApp.mainWindow.firstResponder isKindOfClass:[AvnView class]])
+        auto resolvedParent = Parent.tryGet();
+        if (resolvedParent != nullptr && resolvedParent->IsOverlay() && ![NSApp.mainWindow.firstResponder isKindOfClass:[AvnView class]])
         {
             [GetWindowProtocol() setCanBecomeKeyWindow: true];
         }
@@ -59,12 +60,13 @@ public:
     
     virtual bool ShouldTakeFocusOnShow() override
     {
+        auto parent = Parent.tryGet();
         // Don't steal the focus from another windows if our parent is inactive
-        if (Parent != nullptr && Parent->Window != nullptr && ![Parent->Window isKeyWindow])
+        if (parent != nullptr && parent->Window != nullptr && ![parent->Window isKeyWindow])
             return false;
         
         // Don't steal focus when user hovers mouse over powerpoint while another application is focused
-        if (Parent->IsOverlay())
+        if (parent != nullptr && parent->IsOverlay())
             return false;
 
         return WindowBaseImpl::ShouldTakeFocusOnShow();
