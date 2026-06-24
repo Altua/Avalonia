@@ -14,7 +14,7 @@ using SkiaSharp;
 
 namespace Avalonia.Skia
 {
-    internal class FontManagerImpl : IFontManagerImpl, IFontManagerImpl2
+    public class FontManagerImpl : IFontManagerImpl, IFontManagerImpl2
     {
         private SKFontManager _skFontManager = SKFontManager.Default;
 

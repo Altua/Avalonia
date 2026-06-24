@@ -63,7 +63,7 @@ namespace Avalonia.Platform
         bool TryCreateGlyphTypeface(Stream stream, FontSimulations fontSimulations, [NotNullWhen(returnValue: true)] out IGlyphTypeface? glyphTypeface);
     }
 
-    internal interface IFontManagerImpl2 : IFontManagerImpl
+    public interface IFontManagerImpl2 : IFontManagerImpl
     {
         /// <summary>
         ///     Tries to match a specified character to a typeface that supports specified font properties.
