@@ -156,8 +156,15 @@ public sealed class HeadlessUnitTestSession : IDisposable
         var oldContext = SynchronizationContext.Current;
         try
         {
-            Dispatcher.ResetBeforeUnitTests();
+            Dispatcher.UIThread.EmptyAfterUnitTests();
             _appBuilder.SetupUnsafe();
+            Dispatcher.RemakeForUnitTests();
+            AvaloniaHeadlessPlatform.RemakeForUnitTests();
+            if (SynchronizationContext.Current is AvaloniaSynchronizationContext)
+            {
+                SynchronizationContext.SetSynchronizationContext(
+                    new AvaloniaSynchronizationContext(Dispatcher.UIThread, DispatcherPriority.Normal));
+            }
         }
         catch
         {
@@ -167,9 +174,9 @@ public sealed class HeadlessUnitTestSession : IDisposable
 
         return Disposable.Create(() =>
         {
+            Dispatcher.UIThread.EmptyAfterUnitTests();
             ((ToolTipService?)AvaloniaLocator.Current.GetService<IToolTipService>())?.Dispose();
             (AvaloniaLocator.Current.GetService<FontManager>() as IDisposable)?.Dispose();
-            Dispatcher.ResetForUnitTests();
             scope.Dispose();
             Dispatcher.ResetBeforeUnitTests();
             SynchronizationContext.SetSynchronizationContext(oldContext);

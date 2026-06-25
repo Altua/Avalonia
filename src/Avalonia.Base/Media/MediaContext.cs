@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Threading;
+using Avalonia.Animation;
 using Avalonia.Layout;
 using Avalonia.Rendering;
 using Avalonia.Rendering.Composition;
@@ -68,6 +69,16 @@ internal partial class MediaContext : ICompositorScheduler
 
             return context;
         }
+    }
+
+    internal static void ResetForUnitTests()
+    {
+        var opts = AvaloniaLocator.Current.GetService<DispatcherOptions>() ?? new();
+        var context = new MediaContext(Dispatcher.UIThread, opts.InputStarvationTimeout);
+
+        AvaloniaLocator.CurrentMutable
+            .Bind<MediaContext>().ToConstant(context)
+            .Bind<IGlobalClock>().ToConstant(context.Clock);
     }
     
     /// <summary>
