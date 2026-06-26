@@ -4,6 +4,7 @@ using Avalonia.Controls.Platform;
 using Avalonia.Reactive;
 using Avalonia.Input;
 using Avalonia.Input.Platform;
+using Avalonia.Media;
 using Avalonia.Platform;
 using Avalonia.Rendering;
 using Avalonia.Rendering.Composition;
@@ -85,6 +86,17 @@ namespace Avalonia.Headless
                 .Bind<PlatformHotkeyConfiguration>().ToSingleton<PlatformHotkeyConfiguration>()
                 .Bind<KeyGestureFormatInfo>().ToConstant(new KeyGestureFormatInfo(new Dictionary<Key, string>() { }));
             Compositor = new Compositor( null);
+        }
+
+        internal static void RemakeForUnitTests()
+        {
+            var renderTimer = new RenderTimer(60);
+            AvaloniaLocator.CurrentMutable
+                .Bind<IRenderTimer>().ToConstant(renderTimer)
+                .Bind<IRenderLoop>().ToConstant(new RenderLoop(renderTimer));
+
+            MediaContext.ResetForUnitTests();
+            Compositor = new Compositor(null);
         }
 
         /// <summary>
