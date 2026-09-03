@@ -28,8 +28,20 @@ function FirstJsonValue {
     perl -nle 'print $1 if m{"'"$1"'": "([^"]+)",?}' <<< "${@:2}"
 }
 
-# If dotnet CLI is installed globally and it matches requested version, use for execution
-if [ -x "$(command -v dotnet)" ] && dotnet --version &>/dev/null; then
+if [[ -f "$DOTNET_GLOBAL_FILE" ]]; then
+    DOTNET_VERSION=$(FirstJsonValue "version" "$(<"$DOTNET_GLOBAL_FILE")")
+    if [[ -z "$DOTNET_VERSION" ]]; then
+        unset DOTNET_VERSION
+    fi
+fi
+
+# Prefer an already-downloaded SDK, then use a global SDK if it matches the requested version.
+LOCAL_DOTNET_EXE="$TEMP_DIRECTORY/dotnet-unix/dotnet"
+if [[ -x "$LOCAL_DOTNET_EXE" ]] &&
+   { [[ -z ${DOTNET_VERSION+x} ]] || [[ "$("$LOCAL_DOTNET_EXE" --version 2>/dev/null)" == "$DOTNET_VERSION" ]]; }; then
+    export DOTNET_EXE="$LOCAL_DOTNET_EXE"
+elif [ -x "$(command -v dotnet)" ] &&
+   { [[ -z ${DOTNET_VERSION+x} ]] || [[ "$(dotnet --version 2>/dev/null)" == "$DOTNET_VERSION" ]]; }; then
     export DOTNET_EXE="$(command -v dotnet)"
 else
     # Download install script
@@ -37,14 +49,6 @@ else
     mkdir -p "$TEMP_DIRECTORY"
     curl -Lsfo "$DOTNET_INSTALL_FILE" "$DOTNET_INSTALL_URL"
     chmod +x "$DOTNET_INSTALL_FILE"
-
-    # If global.json exists, load expected version
-    if [[ -f "$DOTNET_GLOBAL_FILE" ]]; then
-        DOTNET_VERSION=$(FirstJsonValue "version" "$(cat "$DOTNET_GLOBAL_FILE")")
-        if [[ "$DOTNET_VERSION" == ""  ]]; then
-            unset DOTNET_VERSION
-        fi
-    fi
 
     # Install by channel or version
     DOTNET_DIRECTORY="$TEMP_DIRECTORY/dotnet-unix"
@@ -54,6 +58,11 @@ else
         "$DOTNET_INSTALL_FILE" --install-dir "$DOTNET_DIRECTORY" --version "$DOTNET_VERSION" --no-path
     fi
     export DOTNET_EXE="$DOTNET_DIRECTORY/dotnet"
+fi
+
+export PATH="$(dirname "$DOTNET_EXE"):$PATH"
+if [[ "$DOTNET_EXE" == "$TEMP_DIRECTORY/dotnet-unix/dotnet" ]]; then
+    export DOTNET_ROOT="$TEMP_DIRECTORY/dotnet-unix"
 fi
 
 echo "Microsoft (R) .NET SDK version $("$DOTNET_EXE" --version)"

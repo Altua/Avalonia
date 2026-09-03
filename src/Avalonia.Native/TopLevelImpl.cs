@@ -382,11 +382,28 @@ internal class TopLevelImpl : ITopLevelImpl, IFramebufferPlatformSurface
 
     public virtual void Dispose()
     {
+        ReleaseMouseCapture(implicitOnly: false);
+
         Native?.Dispose();
         _handle = null;
 
         _nativeControlHost?.Dispose();
         _nativeControlHost = null;
+    }
+
+    private void ReleaseMouseCapture(bool implicitOnly)
+    {
+        // macOS doesn't have the concept of mouse capture. A popup can be closed without losing focus,
+        // so release capture while the captured visual still belongs to this top level. Disposing releases
+        // explicit capture too because a detached implicitly-captured child can transfer capture to its root.
+        var captured = _mouse.Pointer.Captured;
+
+        if (captured is not null &&
+            (!implicitOnly || _mouse.Pointer.CaptureSource == CaptureSource.Implicit) &&
+            TopLevel.GetTopLevel(captured as Visual)?.PlatformImpl == this)
+        {
+            _mouse.PlatformCaptureLost();
+        }
     }
 
     protected virtual bool ChromeHitTest(RawPointerEventArgs e)
@@ -482,18 +499,7 @@ internal class TopLevelImpl : ITopLevelImpl, IFramebufferPlatformSurface
         void IAvnTopLevelEvents.LostFocus()
         {
             _parent.LostFocus?.Invoke();
-
-            // macOS doesn't have the concept of mouse capture. If we're losing the focus during an implicit capture
-            // (standard mouse down), we should release it to avoid mouse events going to an old window.
-            var mouse = _parent._mouse;
-            var captured = mouse.Pointer.Captured;
-
-            if (captured is not null &&
-                mouse.Pointer.CaptureSource == CaptureSource.Implicit &&
-                TopLevel.GetTopLevel(captured as Visual)?.PlatformImpl == _parent)
-            {
-                mouse.PlatformCaptureLost();
-            }
+            _parent.ReleaseMouseCapture(implicitOnly: true);
         }
 
         AvnDragDropEffects IAvnTopLevelEvents.DragEvent(AvnDragEventType type, AvnPoint position,
