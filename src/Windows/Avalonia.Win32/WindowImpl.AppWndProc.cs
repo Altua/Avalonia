@@ -129,11 +129,8 @@ namespace Avalonia.Win32
 
                 case WindowsMessage.WM_DPICHANGED:
                     {
-                        _dpi = (uint)wParam >> 16;
                         var newDisplayRect = Marshal.PtrToStructure<RECT>(lParam);
-                        _scaling = _dpi / StandardDpi;
-                        RefreshIcon();
-                        ScalingChanged?.Invoke(_scaling);
+                        UpdateScaling((uint)wParam >> 16);
 
                         using (SetResizeReason(WindowResizeReason.DpiChange))
                         {
