@@ -250,6 +250,7 @@ partial class Build : NukeBuild
         {
             RunCoreTest("Avalonia.Base.UnitTests");
             RunCoreTest("Avalonia.Controls.UnitTests");
+            RunCoreTest("Avalonia.Win32.UnitTests");
             RunCoreTest("Avalonia.Markup.UnitTests");
             RunCoreTest("Avalonia.Markup.Xaml.UnitTests");
             RunCoreTest("Avalonia.Skia.UnitTests");

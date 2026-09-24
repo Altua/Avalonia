@@ -1001,7 +1001,9 @@ namespace Avalonia.Controls
                     DesktopScalingOverride = owner?.DesktopScaling ?? Screens.ScreenFromPoint(Position)?.Scaling ?? Screens.Primary?.Scaling;
                     break;
                 case WindowStartupLocation.Manual:
-                    DesktopScalingOverride = Screens.ScreenFromPoint(Position)?.Scaling;
+                    // Embedded windows can expose a host-relative or otherwise adjusted Position.
+                    // Prefer the native window's monitor before interpreting that position as a screen point.
+                    DesktopScalingOverride = Screens.ScreenFromWindow(this)?.Scaling ?? Screens.ScreenFromPoint(Position)?.Scaling;
                     break;
             }
         }

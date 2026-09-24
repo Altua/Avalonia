@@ -512,7 +512,7 @@ namespace Avalonia.Win32
                 new object[] { Handle, _framebuffer } :
                 new object[] { Handle, _glSurface, _framebuffer };
 
-        public PixelPoint Position
+        public virtual PixelPoint Position
         {
             get
             {
@@ -537,10 +537,10 @@ namespace Avalonia.Win32
                     if (GetDpiForMonitor(
                             monitor,
                             MONITOR_DPI_TYPE.MDT_EFFECTIVE_DPI,
-                            out _dpi,
+                            out var dpi,
                             out _) == 0)
                     {
-                        _scaling = _dpi / StandardDpi;
+                        UpdateScaling(dpi);
                     }
                 }
             }
@@ -550,6 +550,19 @@ namespace Avalonia.Win32
 
 
         public void Move(PixelPoint point) => Position = point;
+
+        private void UpdateScaling(uint dpi)
+        {
+            // SetWindowPos can already have delivered WM_DPICHANGED synchronously. Notify only
+            // when the subsequent monitor query changes the scale, and never accept a failed query.
+            if (dpi == 0 || dpi == _dpi)
+                return;
+
+            _dpi = dpi;
+            _scaling = dpi / StandardDpi;
+            RefreshIcon();
+            ScalingChanged?.Invoke(_scaling);
+        }
 
         public void SetMinMaxSize(Size minSize, Size maxSize)
         {
@@ -1801,6 +1814,16 @@ namespace Avalonia.Win32
             _workspaceWindow = workspaceWindow;
             
             _platform = AvaloniaLocator.Current.GetService<IPlatformThreadingInterface>() as Win32Platform;
+        }
+
+        public override PixelPoint Position
+        {
+            get => base.Position;
+            set
+            {
+                // PowerPoint owns this child window's placement. This also guards the inherited
+                // Move method, including when a downstream overlay hides Position with "new".
+            }
         }
 
         private bool IsMouseCaptured()
