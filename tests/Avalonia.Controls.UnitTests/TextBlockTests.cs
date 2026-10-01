@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Linq;
 using Avalonia.Controls.Documents;
 using Avalonia.Controls.Templates;
 using Avalonia.Data;
@@ -122,6 +123,61 @@ namespace Avalonia.Controls.UnitTests
 
                 Assert.Equal(constraint, textBlock.DesiredSize);
             }
+        }
+
+        [Theory]
+        [InlineData(1, false)]
+        [InlineData(1.25, false)]
+        [InlineData(1.5, false)]
+        [InlineData(2, false)]
+        [InlineData(1, true)]
+        [InlineData(1.25, true)]
+        [InlineData(1.5, true)]
+        [InlineData(2, true)]
+        public void Arranging_At_DesiredSize_Should_Preserve_Text_With_Fractional_Padding(
+            double scaling, bool useLayoutRounding)
+        {
+            using var app = UnitTestApplication.Start(TestServices.MockPlatformRenderInterface);
+
+            var target = new TextBlock
+            {
+                Padding = new Thickness(1.1, 0),
+                TextWrapping = TextWrapping.Wrap,
+                UseLayoutRounding = useLayoutRounding,
+                Inlines = new InlineCollection { new Run("@A") }
+            };
+            var root = new TestRoot(target) { LayoutScaling = scaling };
+
+            target.Measure(Size.Infinity);
+            var measuredWidth = target.TextLayout.WidthIncludingTrailingWhitespace;
+            target.Arrange(new Rect(target.DesiredSize));
+
+            var line = Assert.Single(target.TextLayout.TextLines);
+            Assert.Equal("@A", string.Concat(line.TextRuns.Select(run => run.Text.ToString())));
+            Assert.Equal(measuredWidth, target.TextLayout.WidthIncludingTrailingWhitespace);
+        }
+
+        [Theory]
+        [InlineData(false, 1.1)]
+        [InlineData(true, 0.8)]
+        public void Rendering_Should_Use_The_Same_Padding_As_Layout(bool useLayoutRounding, double expectedPadding)
+        {
+            using var app = UnitTestApplication.Start(TestServices.MockPlatformRenderInterface);
+
+            var target = new TestTextBlock
+            {
+                Text = "@A",
+                Padding = new Thickness(1.1),
+                UseLayoutRounding = useLayoutRounding
+            };
+            var root = new TestRoot(target) { LayoutScaling = 1.25 };
+            target.Measure(Size.Infinity);
+            target.Arrange(new Rect(target.DesiredSize));
+
+            using var context = new DrawingGroup().Open();
+            target.Render(context);
+
+            Assert.Equal(new Point(expectedPadding, expectedPadding), target.RenderOrigin);
         }
 
         [Fact]
@@ -486,6 +542,13 @@ namespace Avalonia.Controls.UnitTests
         private class TestTextBlock : TextBlock
         {
             public Size Constraint => _constraint;
+
+            public Point RenderOrigin { get; private set; }
+
+            protected override void RenderTextLayout(DrawingContext context, Point origin)
+            {
+                RenderOrigin = origin;
+            }
         }
     }
 }
